@@ -63,3 +63,6 @@ contract Marketplace {
 //inst.purchaseCourse(4)
 //inst.purchaseCourse(5)
 //inst.getPurchasedCourseForUser("0x05cC6D6Db1a1b2841ccF81307E94aec57C53D854")
+
+//in order to interact with other accounts:
+//Marketplace.defaults({from:"0x...."})
