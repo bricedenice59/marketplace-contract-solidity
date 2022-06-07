@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.22 <0.9.0;
+pragma solidity >=0.8.14;
 
 contract Marketplace {
     enum State {
@@ -12,6 +12,7 @@ contract Marketplace {
     //That course is gonna be stored on the storage
     struct Course {
         uint32 id; // 32
+        bytes32 description;
         uint256 price; // 32
         State state; // 1
     }
@@ -28,6 +29,7 @@ contract Marketplace {
     }
 
     error CourseAlreadyBought();
+    error CourseAlreadyExist();
 
     /// Only owner has an access!
     error OnlyOwner();
@@ -47,13 +49,35 @@ contract Marketplace {
         setContractOwner(newOwner);
     }
 
-    function purchaseCourse(uint32 courseId) external payable {
+    function addCourse(string memory description, uint256 price)
+        external
+        onlyOwner
+    {
+        uint32 idLastCourse = getMaxCourseId() + 1;
+        bytes32 descriptionHash = keccak256(
+            abi.encodePacked(description, price)
+        );
+
+        for (uint256 i = 0; i < _availableCourses.length; i++) {
+            if (_availableCourses[i].description == descriptionHash) {
+                revert CourseAlreadyExist();
+            }
+        }
+
+        Course memory course = Course({
+            id: idLastCourse,
+            description: descriptionHash,
+            price: price,
+            state: State.Deactivated
+        });
+
+        _availableCourses.push(course);
+    }
+
+    function purchaseCourse(uint32 courseId) external {
         if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
-            Course memory course = Course({
-                id: courseId,
-                price: msg.value,
-                state: State.Purchased
-            });
+            Course memory course = getCourseFromId(courseId);
+            course.state = State.Purchased;
             ownedCourses[msg.sender].push(course);
             return;
         }
@@ -98,9 +122,36 @@ contract Marketplace {
 
         return ids;
     }
+
+    function getCourseFromId(uint32 courseId)
+        private
+        view
+        returns (Course memory)
+    {
+        for (uint256 i = 0; i < _availableCourses.length; i++) {
+            if (_availableCourses[i].id == courseId) {
+                return _availableCourses[i];
+            }
+        }
+        revert("No course found");
+    }
+
+    function getMaxCourseId() private view returns (uint32) {
+        uint32 maxNumber; //default = 0
+
+        for (uint256 i = 0; i < _availableCourses.length; i++) {
+            if (_availableCourses[i].id > maxNumber) {
+                maxNumber = _availableCourses[i].id;
+            }
+        }
+
+        return maxNumber;
+    }
 }
 
 // const instance = await Marketplace.deployed()
+//instance.addCourse('Solidity for beginners', 75);
+//instance.addCourse('Solidity for advanced', 120.6);
 //instance.purchaseCourse(5)
 //instance.purchaseCourse(3)
 //instance.purchaseCourse(4)
