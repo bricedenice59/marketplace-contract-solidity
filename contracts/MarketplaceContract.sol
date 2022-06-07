@@ -3,66 +3,83 @@ pragma solidity >=0.4.22 <0.9.0;
 
 contract Marketplace {
     enum State {
+        NotPurchasedYet,
         Purchased
     }
 
     //That course is gonna be stored on the storage
     struct Course {
-        uint32 id; //32
-        address owner; //20
-        State courseState; //1byte
+        uint32 id; // 32
+        uint256 price; // 32
+        State state; // 1
     }
 
-    Course[] courses;
+    Course[] _availableCourses;
 
-    modifier hasCourseAlreadyBeenPurchased(uint32 courseId) {
-        uint32[] memory _courses = getPurchasedCourseForUser(msg.sender);
-        bool found = false;
-        for (uint256 i = 0; i < _courses.length; i++) {
-            if (courses[i].owner == msg.sender && courses[i].id == courseId) {
-                found = true;
-                break;
+    // mapping of courseHash to Course data
+    mapping(address => Course[]) private ownedCourses;
+
+    error CourseAlreadyBought();
+
+    function purchaseCourse(uint32 courseId) external payable {
+        if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
+            Course memory course = Course({
+                id: courseId,
+                price: msg.value,
+                state: State.Purchased
+            });
+            ownedCourses[msg.sender].push(course);
+            return;
+        }
+
+        revert CourseAlreadyBought();
+    }
+
+    function hasCourseAlreadyBeenBought(address _address, uint32 courseId)
+        private
+        view
+        returns (bool)
+    {
+        Course[] memory owned = ownedCourses[_address];
+        for (uint256 i = 0; i < owned.length; i++) {
+            if (owned[i].id == courseId && owned[i].state == State.Purchased) {
+                return true;
             }
         }
-        require(found == false, "course has already been bought");
-        _;
+        return false;
     }
 
-    function purchaseCourse(uint32 courseId)
+    function getUserBoughtCoursesIds(address _address)
         external
-        hasCourseAlreadyBeenPurchased(courseId)
-    {
-        Course memory course = Course({
-            id: courseId,
-            owner: msg.sender,
-            courseState: State.Purchased
-        });
-        courses.push(course);
-    }
-
-    function getPurchasedCourseForUser(address userAddress)
-        public
         view
         returns (uint32[] memory)
     {
-        uint32[] memory ids = new uint32[](courses.length);
+        uint32 resultCount;
 
-        for (uint256 i = 0; i < courses.length; i++) {
-            if (courses[i].owner == userAddress) {
-                ids[i] = courses[i].id;
+        Course[] memory owned = ownedCourses[_address];
+        for (uint32 i = 0; i < owned.length; i++) {
+            if (owned[i].state == State.Purchased) resultCount++;
+        }
+
+        uint32[] memory ids = new uint32[](resultCount);
+        uint256 j;
+        for (uint256 i = 0; i < owned.length; i++) {
+            if (owned[i].state == State.Purchased) {
+                ids[j] = owned[i].id;
+                j++;
             }
         }
 
-        return (ids);
+        return ids;
     }
 }
 
 // const instance = await Marketplace.deployed()
-//inst.purchaseCourse(5)
-//inst.purchaseCourse(3)
-//inst.purchaseCourse(4)
-//inst.purchaseCourse(5)
-//inst.getPurchasedCourseForUser("0x05cC6D6Db1a1b2841ccF81307E94aec57C53D854")
+//instance.purchaseCourse(5)
+//instance.purchaseCourse(3)
+//instance.purchaseCourse(4)
+//instance.purchaseCourse(5)
+//instance.getUserBoughtCoursesIds("0x05cC6D6Db1a1b2841ccF81307E94aec57C53D854")
 
 //in order to interact with other accounts:
 //Marketplace.defaults({from:"0x...."})
