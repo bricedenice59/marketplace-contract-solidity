@@ -4,7 +4,9 @@ pragma solidity >=0.4.22 <0.9.0;
 contract Marketplace {
     enum State {
         NotPurchasedYet,
-        Purchased
+        Purchased,
+        Activated,
+        Deactivated
     }
 
     //That course is gonna be stored on the storage
@@ -19,7 +21,31 @@ contract Marketplace {
     // mapping of courseHash to Course data
     mapping(address => Course[]) private ownedCourses;
 
+    address payable private _owner;
+
+    constructor() {
+        setContractOwner(msg.sender);
+    }
+
     error CourseAlreadyBought();
+
+    /// Only owner has an access!
+    error OnlyOwner();
+
+    modifier onlyOwner() {
+        if (msg.sender != _owner) {
+            revert OnlyOwner();
+        }
+        _;
+    }
+
+    function setContractOwner(address newOwner) private {
+        _owner = payable(newOwner);
+    }
+
+    function transferOwnership(address newOwner) external onlyOwner {
+        setContractOwner(newOwner);
+    }
 
     function purchaseCourse(uint32 courseId) external payable {
         if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
