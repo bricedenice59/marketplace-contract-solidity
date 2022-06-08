@@ -179,16 +179,14 @@ contract Marketplace {
 //instance.addCourse('0x4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f', 'Solidity for advanced', 120);
 //instance.addCourse('0x50477dd0f75cca5cf8518db7062e7b9e378f467b829c26d4a0a8046683dd3654', 'Css complete course', 250);
 
-//instance.activateCourse(1);
-//instance.activateCourse(2);
-//instance.purchaseCourse(1);
+//instance.activateCourse(0x7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717);
+//instance.activateCourse(0x4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f);
+//instance.purchaseCourse(0x4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f);
 
-//instance.deactivateCourse(1);
-//instance.purchaseCourse(1)
-
-//instance.purchaseCourse(2)
+//instance.deactivateCourse(0x7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717);
+//instance.purchaseCourse(0x7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717)
 
 //instance.getUserBoughtCoursesIds("0x...")
 
-//in order to interact with other accounts:
+//to interact with other accounts:
 //Marketplace.defaults({from:"0x...."})
