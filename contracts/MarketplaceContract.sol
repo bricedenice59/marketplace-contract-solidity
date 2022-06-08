@@ -20,7 +20,9 @@ contract Marketplace {
     Course[] _availableCourses;
 
     // mapping of courseHash to Course data
-    mapping(address => Course[]) private ownedCourses;
+    mapping(address => Course[]) private _ownedCourses;
+
+    mapping(uint32 => Course) private _allCourses;
 
     address payable private _owner;
 
@@ -30,13 +32,22 @@ contract Marketplace {
 
     error CourseAlreadyBought();
     error CourseAlreadyExist();
-
-    /// Only owner has an access!
     error OnlyOwner();
+    error CourseMustBeActivated();
+    error CourseIsAlreadyDeactivated();
+    error CourseIsAlreadyActivated();
 
     modifier onlyOwner() {
         if (msg.sender != _owner) {
             revert OnlyOwner();
+        }
+        _;
+    }
+
+    modifier canPurchaseCourse(uint32 courseId) {
+        Course memory course = getCourseFromId(courseId);
+        if (course.state == State.Deactivated) {
+            revert CourseMustBeActivated();
         }
         _;
     }
@@ -72,13 +83,33 @@ contract Marketplace {
         });
 
         _availableCourses.push(course);
+        _allCourses[idLastCourse] = course;
     }
 
-    function purchaseCourse(uint32 courseId) external {
+    function activateCourse(uint32 courseId) external onlyOwner {
+        Course storage course = getCourseFromId(courseId);
+        if (course.state == State.Activated) {
+            revert CourseIsAlreadyActivated();
+        }
+        course.state = State.Activated;
+    }
+
+    function deactivateCourse(uint32 courseId) external onlyOwner {
+        Course storage course = getCourseFromId(courseId);
+        if (course.state == State.Deactivated) {
+            revert CourseIsAlreadyDeactivated();
+        }
+        course.state = State.Deactivated;
+    }
+
+    function purchaseCourse(uint32 courseId)
+        external
+        canPurchaseCourse(courseId)
+    {
         if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
             Course memory course = getCourseFromId(courseId);
             course.state = State.Purchased;
-            ownedCourses[msg.sender].push(course);
+            _ownedCourses[msg.sender].push(course);
             return;
         }
 
@@ -90,7 +121,7 @@ contract Marketplace {
         view
         returns (bool)
     {
-        Course[] memory owned = ownedCourses[_address];
+        Course[] memory owned = _ownedCourses[_address];
         for (uint256 i = 0; i < owned.length; i++) {
             if (owned[i].id == courseId && owned[i].state == State.Purchased) {
                 return true;
@@ -106,7 +137,7 @@ contract Marketplace {
     {
         uint32 resultCount;
 
-        Course[] memory owned = ownedCourses[_address];
+        Course[] memory owned = _ownedCourses[_address];
         for (uint32 i = 0; i < owned.length; i++) {
             if (owned[i].state == State.Purchased) resultCount++;
         }
@@ -126,14 +157,12 @@ contract Marketplace {
     function getCourseFromId(uint32 courseId)
         private
         view
-        returns (Course memory)
+        returns (Course storage)
     {
-        for (uint256 i = 0; i < _availableCourses.length; i++) {
-            if (_availableCourses[i].id == courseId) {
-                return _availableCourses[i];
-            }
-        }
-        revert("No course found");
+        Course storage course = _allCourses[courseId];
+        if (course.id > 0) {
+            return course;
+        } else revert("No course found");
     }
 
     function getMaxCourseId() private view returns (uint32) {
@@ -152,11 +181,17 @@ contract Marketplace {
 // const instance = await Marketplace.deployed()
 //instance.addCourse('Solidity for beginners', 75);
 //instance.addCourse('Solidity for advanced', 120.6);
-//instance.purchaseCourse(5)
-//instance.purchaseCourse(3)
-//instance.purchaseCourse(4)
-//instance.purchaseCourse(5)
-//instance.getUserBoughtCoursesIds("0x05cC6D6Db1a1b2841ccF81307E94aec57C53D854")
+
+//instance.activateCourse(1);
+//instance.activateCourse(2);
+//instance.purchaseCourse(1);
+
+//instance.deactivateCourse(1);
+//instance.purchaseCourse(1)
+
+//instance.purchaseCourse(2)
+
+//instance.getUserBoughtCoursesIds("0x...")
 
 //in order to interact with other accounts:
 //Marketplace.defaults({from:"0x...."})
