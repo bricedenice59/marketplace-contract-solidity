@@ -69,11 +69,11 @@ contract Marketplace {
             abi.encodePacked(description, price)
         );
 
-        for (uint256 i = 0; i < _availableCourses.length; i++) {
-            if (_availableCourses[i].description == descriptionHash) {
-                revert CourseAlreadyExist();
-            }
-        }
+        Course memory existingCourse = _allCourses[idLastCourse];
+        if (
+            existingCourse.id > 0 &&
+            existingCourse.description == descriptionHash
+        ) revert CourseAlreadyExist();
 
         Course memory course = Course({
             id: idLastCourse,
