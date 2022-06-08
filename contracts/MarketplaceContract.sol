@@ -1,7 +1,18 @@
 // SPDX-License-Identifier: MIT
 pragma solidity >=0.8.14;
 
+// SafeMath
+// The following version of SafeMath is used because this contract uses Solidity 0.8 or later (i.e. the compiler has built in overflow checks).
+// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+
 contract Marketplace {
+    // Library usage
+    using SafeMath for uint256;
+
+    // boolean to prevent reentrancy
+    bool _locked = false;
+
     enum State {
         NotPurchasedYet,
         Purchased,
@@ -14,6 +25,7 @@ contract Marketplace {
         bytes32 id; // 32
         bytes32 description;
         uint256 price; // 32
+        address owner;
         State state; // 1
     }
 
@@ -28,6 +40,8 @@ contract Marketplace {
         setContractOwner(msg.sender);
     }
 
+    receive() external payable {}
+
     error CourseAlreadyBought();
     error CourseAlreadyExist();
     error OnlyOwner();
@@ -40,6 +54,17 @@ contract Marketplace {
             revert OnlyOwner();
         }
         _;
+    }
+
+    // Modifier
+    /**
+     * Prevents reentrancy
+     */
+    modifier noReentrant() {
+        require(!_locked, "No re-entrancy");
+        _locked = true;
+        _;
+        _locked = false;
     }
 
     modifier canPurchaseCourse(bytes32 courseId) {
@@ -61,10 +86,11 @@ contract Marketplace {
     function addCourse(
         bytes32 id,
         string memory description,
-        uint256 price
+        uint32 price,
+        address courseOwner
     ) external onlyOwner {
         bytes32 descriptionHash = keccak256(
-            abi.encodePacked(description, price)
+            abi.encodePacked(id, description, price)
         );
 
         Course memory existingCourse = _allCourses[id];
@@ -77,6 +103,7 @@ contract Marketplace {
             id: id,
             description: descriptionHash,
             price: price,
+            owner: courseOwner,
             state: State.Deactivated
         });
 
@@ -99,14 +126,40 @@ contract Marketplace {
         course.state = State.Deactivated;
     }
 
+    function splitAmount(address recipient, uint256 amount)
+        private
+        noReentrant
+    {
+        //I want the course owner to be rewarded with 80% of the course price
+        //The 20% left go to the marketplace contract owner
+        uint256 courseOwnwerAmount = amount.div(5).mul(4);
+        uint256 contractOwnwerAmount = amount.div(5);
+
+        (bool successTransferCourseOwner, ) = recipient.call{
+            value: courseOwnwerAmount
+        }("");
+        require(successTransferCourseOwner, "Transfer failed.");
+
+        (bool successTransferContractOwner, ) = _owner.call{
+            value: contractOwnwerAmount
+        }("");
+        require(successTransferContractOwner, "Transfer failed.");
+    }
+
     function purchaseCourse(bytes32 courseId)
         external
+        payable
         canPurchaseCourse(courseId)
     {
+        require(msg.value > 0, "No Ether were sent.");
+
         if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
             Course memory course = getCourseFromId(courseId);
+            course.price = msg.value;
             course.state = State.Purchased;
             _ownedCourses[msg.sender].push(course);
+
+            splitAmount(course.owner, msg.value);
             return;
         }
 
@@ -122,9 +175,7 @@ contract Marketplace {
         for (uint256 i = 0; i < owned.length; i++) {
             if (
                 owned[i].id == courseHashId && owned[i].state == State.Purchased
-            ) {
-                return true;
-            }
+            ) return true;
         }
         return false;
     }
