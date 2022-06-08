@@ -11,18 +11,16 @@ contract Marketplace {
 
     //That course is gonna be stored on the storage
     struct Course {
-        uint32 id; // 32
+        bytes32 id; // 32
         bytes32 description;
         uint256 price; // 32
         State state; // 1
     }
 
-    Course[] _availableCourses;
-
     // mapping of courseHash to Course data
     mapping(address => Course[]) private _ownedCourses;
 
-    mapping(uint32 => Course) private _allCourses;
+    mapping(bytes32 => Course) private _allCourses;
 
     address payable private _owner;
 
@@ -44,7 +42,7 @@ contract Marketplace {
         _;
     }
 
-    modifier canPurchaseCourse(uint32 courseId) {
+    modifier canPurchaseCourse(bytes32 courseId) {
         Course memory course = getCourseFromId(courseId);
         if (course.state == State.Deactivated) {
             revert CourseMustBeActivated();
@@ -60,33 +58,32 @@ contract Marketplace {
         setContractOwner(newOwner);
     }
 
-    function addCourse(string memory description, uint256 price)
-        external
-        onlyOwner
-    {
-        uint32 idLastCourse = getMaxCourseId() + 1;
+    function addCourse(
+        bytes32 id,
+        string memory description,
+        uint256 price
+    ) external onlyOwner {
         bytes32 descriptionHash = keccak256(
             abi.encodePacked(description, price)
         );
 
-        Course memory existingCourse = _allCourses[idLastCourse];
+        Course memory existingCourse = _allCourses[id];
         if (
             existingCourse.id > 0 &&
             existingCourse.description == descriptionHash
         ) revert CourseAlreadyExist();
 
         Course memory course = Course({
-            id: idLastCourse,
+            id: id,
             description: descriptionHash,
             price: price,
             state: State.Deactivated
         });
 
-        _availableCourses.push(course);
-        _allCourses[idLastCourse] = course;
+        _allCourses[id] = course;
     }
 
-    function activateCourse(uint32 courseId) external onlyOwner {
+    function activateCourse(bytes32 courseId) external onlyOwner {
         Course storage course = getCourseFromId(courseId);
         if (course.state == State.Activated) {
             revert CourseIsAlreadyActivated();
@@ -94,7 +91,7 @@ contract Marketplace {
         course.state = State.Activated;
     }
 
-    function deactivateCourse(uint32 courseId) external onlyOwner {
+    function deactivateCourse(bytes32 courseId) external onlyOwner {
         Course storage course = getCourseFromId(courseId);
         if (course.state == State.Deactivated) {
             revert CourseIsAlreadyDeactivated();
@@ -102,7 +99,7 @@ contract Marketplace {
         course.state = State.Deactivated;
     }
 
-    function purchaseCourse(uint32 courseId)
+    function purchaseCourse(bytes32 courseId)
         external
         canPurchaseCourse(courseId)
     {
@@ -116,14 +113,16 @@ contract Marketplace {
         revert CourseAlreadyBought();
     }
 
-    function hasCourseAlreadyBeenBought(address _address, uint32 courseId)
+    function hasCourseAlreadyBeenBought(address _address, bytes32 courseHashId)
         private
         view
         returns (bool)
     {
         Course[] memory owned = _ownedCourses[_address];
         for (uint256 i = 0; i < owned.length; i++) {
-            if (owned[i].id == courseId && owned[i].state == State.Purchased) {
+            if (
+                owned[i].id == courseHashId && owned[i].state == State.Purchased
+            ) {
                 return true;
             }
         }
@@ -133,7 +132,7 @@ contract Marketplace {
     function getUserBoughtCoursesIds(address _address)
         external
         view
-        returns (uint32[] memory)
+        returns (bytes32[] memory)
     {
         uint32 resultCount;
 
@@ -142,7 +141,7 @@ contract Marketplace {
             if (owned[i].state == State.Purchased) resultCount++;
         }
 
-        uint32[] memory ids = new uint32[](resultCount);
+        bytes32[] memory ids = new bytes32[](resultCount);
         uint256 j;
         for (uint256 i = 0; i < owned.length; i++) {
             if (owned[i].state == State.Purchased) {
@@ -154,7 +153,7 @@ contract Marketplace {
         return ids;
     }
 
-    function getCourseFromId(uint32 courseId)
+    function getCourseFromId(bytes32 courseId)
         private
         view
         returns (Course storage)
@@ -164,23 +163,21 @@ contract Marketplace {
             return course;
         } else revert("No course found");
     }
-
-    function getMaxCourseId() private view returns (uint32) {
-        uint32 maxNumber; //default = 0
-
-        for (uint256 i = 0; i < _availableCourses.length; i++) {
-            if (_availableCourses[i].id > maxNumber) {
-                maxNumber = _availableCourses[i].id;
-            }
-        }
-
-        return maxNumber;
-    }
 }
 
+// list of guids from frotend
+// Course 1 id : 97acd90d-5715-454e-a9a4-211f1a9fb4aa
+// Course 2 id : b1642964-9d92-4284-9eb9-b46b522a1ef5
+// Course 3 id : b8c2897c-5a8b-4e2c-89f9-53d409ef8515
+
+// Course 1 keccak-256 : 7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717
+// Course 2 keccak-256 : 4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f
+// Course 3 keccak-256 : 50477dd0f75cca5cf8518db7062e7b9e378f467b829c26d4a0a8046683dd3654
+
 // const instance = await Marketplace.deployed()
-//instance.addCourse('Solidity for beginners', 75);
-//instance.addCourse('Solidity for advanced', 120.6);
+//instance.addCourse({id: '0x7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717', description: 'Solidity for beginners', price: 75});
+//instance.addCourse('0x4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f', 'Solidity for advanced', 120);
+//instance.addCourse('0x50477dd0f75cca5cf8518db7062e7b9e378f467b829c26d4a0a8046683dd3654', 'Css complete course', 250);
 
 //instance.activateCourse(1);
 //instance.activateCourse(2);
