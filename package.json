@@ -10,12 +10,15 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.6.0",
+    "bluebird": "^3.7.2",
     "dotenv": "^16.0.1",
     "dotenv-expand": "^8.0.3",
+    "keccak256": "^1.0.6",
     "next": "12.1.6",
     "react": "18.1.0",
     "react-dom": "18.1.0",
     "solc": "^0.8.14-fixed",
+    "sqlite3": "^5.0.8",
     "web3": "^1.7.3"
   },
   "devDependencies": {

@@ -23,7 +23,7 @@ contract Marketplace {
     //That course is gonna be stored on the storage
     struct Course {
         bytes32 id; // 32
-        bytes32 description;
+        bytes32 title;
         uint256 price; // 32
         address owner;
         State state; // 1
@@ -85,25 +85,23 @@ contract Marketplace {
 
     function addCourse(
         bytes32 id,
-        string memory description,
+        string memory title,
         uint32 price,
-        address courseOwner
+        address courseCreatorAddress
     ) external onlyOwner {
         bytes32 descriptionHash = keccak256(
-            abi.encodePacked(id, description, price)
+            abi.encodePacked(id, title, price, courseCreatorAddress)
         );
 
         Course memory existingCourse = _allCourses[id];
-        if (
-            existingCourse.id > 0 &&
-            existingCourse.description == descriptionHash
-        ) revert CourseAlreadyExist();
+        if (existingCourse.id > 0 && existingCourse.title == descriptionHash)
+            revert CourseAlreadyExist();
 
         Course memory course = Course({
             id: id,
-            description: descriptionHash,
+            title: descriptionHash,
             price: price,
-            owner: courseOwner,
+            owner: courseCreatorAddress,
             state: State.Deactivated
         });
 
