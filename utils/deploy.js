@@ -49,15 +49,12 @@ const deploy = async (contract) => {
 };
 
 const addCourseToContract = async (deployedContract, course) => {
-    const contractAddress = deployedContract._address;
-    const idKeccac256 = "0x" + keccak256(course.id).toString('hex');
-    const method = deployedContract.methods.addCourse(idKeccac256, course.title, course.price, course.courseOwner);
+    const method = deployedContract.methods.addCourse(course.id, course.title, course.price, course.courseOwner);
 
-    // Sign Tx with PK
     const createTransaction = await web3.eth.accounts.signTransaction(
         {
             from: web3Account,
-            to: contractAddress,
+            to: deployedContract._address,
             data: method.encodeABI(),
             gas: 3000000,
         },
@@ -66,8 +63,7 @@ const addCourseToContract = async (deployedContract, course) => {
     console.log('Sending transaction... please wait.');
     // Send Tx and Wait for Receipt
     const createReceipt = await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
-    console.log(`Tx successful with hash: ${createReceipt.transactionHash}`);
-    return createReceipt.transactionHashl
+    return createReceipt;
 };
 
 let web3Account = null;
@@ -84,8 +80,19 @@ if (web3) {
                 const allCourses = CoursesFetcher.getAllParsedCoursesForContractUse().data;
                 for (let index = 0; index < allCourses.length; index++) {
                     const course = allCourses[index];
+                    course.id = "0x" + keccak256(course.id).toString('hex');
                     //add a course to the blockchain
-                    await addCourseToContract(deployedContract, course);
+                    try {
+                        console.log(`Add course to contract: ${course.id} ${course.title}`);
+                        var result = await addCourseToContract(deployedContract, course);
+                        console.log(`Course successfully added with tx hash: ${result.transactionHash}`);
+                    }
+                    catch (e) {
+                        if (e.reason)
+                            console.log(e.reason);
+                        else
+                            console.log(e.message);
+                    }
                 }
             }
         })();
