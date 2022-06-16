@@ -16,7 +16,5 @@ const getAllParsedCoursesForContractUse = () => {
     }
 }
 
-getAllParsedCoursesForContractUse();
-
 module.exports.getAllCourses = getAllCourses;
 module.exports.getAllParsedCoursesForContractUse = getAllParsedCoursesForContractUse;

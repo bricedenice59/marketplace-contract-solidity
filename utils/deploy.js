@@ -7,6 +7,7 @@ const keccak256 = require('keccak256');
 const CoursesFetcher = require('../content/courses/fetcher');
 
 const baseContractName = "Marketplace";
+const defaultGas = 5000000; // Rinkeby has a lower block limit than mainnet
 var baseContractSolidityFile = path.resolve("contracts", "MarketplaceContract.sol");
 var baseContractFileName = path.basename(baseContractSolidityFile);
 
@@ -27,6 +28,7 @@ catch (e) {
 
 // Deploy contract
 const deploy = async (contract) => {
+    const gas = await web3.eth.getGasPrice();
     console.log('Attempting to deploy from account:', web3Account);
 
     const incrementer = new web3.eth.Contract(contract.abi);
@@ -36,7 +38,8 @@ const deploy = async (contract) => {
         {
             from: web3Account,
             data: incrementerTx.encodeABI(),
-            gas: 3000000,
+            gasPrice: gas,
+            gas: defaultGas
         },
         process.env.PRIVATE_KEY
     );
@@ -49,14 +52,15 @@ const deploy = async (contract) => {
 };
 
 const addCourseToContract = async (deployedContract, course) => {
+    const gas = await web3.eth.getGasPrice();
     const method = deployedContract.methods.addCourse(course.id, course.title, course.price, course.courseOwner);
-
     const createTransaction = await web3.eth.accounts.signTransaction(
         {
             from: web3Account,
             to: deployedContract._address,
             data: method.encodeABI(),
-            gas: 3000000,
+            gasPrice: gas,
+            gas: defaultGas
         },
         process.env.PRIVATE_KEY
     );
@@ -64,6 +68,40 @@ const addCourseToContract = async (deployedContract, course) => {
     // Send Tx and Wait for Receipt
     const createReceipt = await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
     return createReceipt;
+};
+
+const activateCourse = async (deployedContract, course, shouldActivate = true) => {
+    const gas = await web3.eth.getGasPrice();
+    var method = shouldActivate ? deployedContract.methods.activateCourse(course.id) :
+        deployedContract.methods.deactivateCourse(course.id);
+
+    const createTransaction = await web3.eth.accounts.signTransaction(
+        {
+            from: web3Account,
+            to: deployedContract._address,
+            data: method.encodeABI(),
+            gasPrice: gas,
+            gas: defaultGas
+        },
+        process.env.PRIVATE_KEY
+    );
+    console.log('Sending transaction... please wait.');
+    // Send Tx and Wait for Receipt
+    const createReceipt = await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
+    return createReceipt;
+};
+
+const getCoursePrice = async (deployedContract, idCourse) => {
+    var res = await deployedContract.methods.getCoursePrice(idCourse)
+        .call({ from: web3Account }, function (err, result) {
+            if (err) {
+                console.log(`An error occured when trying to get course price for ${idCourse}`, err)
+                return;
+            }
+            return result;
+        });
+
+    return res;
 };
 
 let web3Account = null;
@@ -81,11 +119,16 @@ if (web3) {
                 for (let index = 0; index < allCourses.length; index++) {
                     const course = allCourses[index];
                     course.id = "0x" + keccak256(course.id).toString('hex');
-                    //add a course to the blockchain
                     try {
-                        console.log(`Add course to contract: ${course.id} ${course.title}`);
+                        //add a course to the blockchain
+                        console.log(`Add course to contract: ${course.id} : ${course.title}`);
                         var result = await addCourseToContract(deployedContract, course);
                         console.log(`Course successfully added with tx hash: ${result.transactionHash}`);
+
+                        //activate a course
+                        console.log(`Activate course: ${course.id} : ${course.title}`);
+                        var result = await activateCourse(deployedContract, course, false);
+                        console.log(`Course successfully activated with tx hash: ${result.transactionHash}`);
                     }
                     catch (e) {
                         if (e.reason)

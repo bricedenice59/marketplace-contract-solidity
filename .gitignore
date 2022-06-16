@@ -25,3 +25,4 @@ bin/*
 package-lock.json
 public/contracts/*
 .next/*
+.env

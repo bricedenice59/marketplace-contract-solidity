@@ -164,6 +164,15 @@ contract Marketplace {
         revert CourseAlreadyBought();
     }
 
+    function getCoursePrice(bytes32 courseId)
+        external
+        view
+        returns (uint256 price)
+    {
+        Course memory course = getCourseFromId(courseId);
+        return course.price;
+    }
+
     function hasCourseAlreadyBeenBought(address _address, bytes32 courseHashId)
         private
         view
