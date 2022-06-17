@@ -13,6 +13,8 @@ contract Marketplace {
     // boolean to prevent reentrancy
     bool _locked = false;
 
+    address payable private _contractOwner;
+
     enum State {
         NotPurchasedYet,
         Purchased,
@@ -20,21 +22,29 @@ contract Marketplace {
         Deactivated
     }
 
+    struct CourseOwner {
+        bytes32 id;
+        address _address; //A owner may (have to)/change account address
+        uint8 rewardPercentage; //A course owner negotiates to earn a percentage of his course proposed price
+    }
+
     //That course is gonna be stored on the storage
     struct Course {
         bytes32 id; // 32
         bytes32 title;
         uint256 price; // 32
-        address owner;
+        CourseOwner owner;
         State state; // 1
     }
 
     // mapping of courseHash to Course data
     mapping(address => Course[]) private _ownedCourses;
 
+    //list of all courses stored in this contract
     mapping(bytes32 => Course) private _allCourses;
 
-    address payable private _owner;
+    // list of all course owners who have course stored in this contract
+    mapping(bytes32 => CourseOwner) public _allCourseOwners;
 
     constructor() {
         setContractOwner(msg.sender);
@@ -42,19 +52,15 @@ contract Marketplace {
 
     receive() external payable {}
 
-    error CourseAlreadyBought();
-    error CourseAlreadyExist();
     error OnlyOwner();
+    error CourseOwnerAddressIsSame();
+    error CourseOwnerAlreadyExist();
+    error CourseAlreadyBought();
+    error CourseOwnerDoNoExist();
+    error CourseAlreadyExist();
     error CourseMustBeActivated();
     error CourseIsAlreadyDeactivated();
     error CourseIsAlreadyActivated();
-
-    modifier onlyOwner() {
-        if (msg.sender != _owner) {
-            revert OnlyOwner();
-        }
-        _;
-    }
 
     // Modifier
     /**
@@ -67,6 +73,10 @@ contract Marketplace {
         _locked = false;
     }
 
+    // Modifier
+    /**
+     * Prevents a course to be puchased if not activated yet
+     */
     modifier canPurchaseCourse(bytes32 courseId) {
         Course memory course = getCourseFromId(courseId);
         if (course.state == State.Deactivated) {
@@ -75,24 +85,93 @@ contract Marketplace {
         _;
     }
 
-    function setContractOwner(address newOwner) private {
-        _owner = payable(newOwner);
+    // Modifier
+    /**
+     * Prevents contract interaction with someone else who is not the contract owner
+     */
+    modifier onlyContractOwner() {
+        if (msg.sender != _contractOwner) {
+            revert OnlyOwner();
+        }
+        _;
     }
 
-    function transferOwnership(address newOwner) external onlyOwner {
-        setContractOwner(newOwner);
+    // Function
+    /**
+     * Set a new contract owner
+     */
+    function setContractOwner(address newContractOwner) private {
+        _contractOwner = payable(newContractOwner);
     }
 
+    // Function
+    /**
+     * Transfer contract ownership
+     */
+    function transferOwnership(address newContractOwner)
+        external
+        onlyContractOwner
+    {
+        setContractOwner(newContractOwner);
+    }
+
+    // Function
+    /**
+     * Change course's owner recipient address
+     */
+    //A bad actor could change course's owner recipient address to redirect funds from course purchases, hence the modifier requirement that allows only the contract owner to do it.
+    //ideally, if taking full responsabilities over his account, the course owner is able change his recipient address without requiring contract owner assistance.
+    function changeCourseOwnerAddress(bytes32 courseOwnerId, address newAddress)
+        external
+        onlyContractOwner
+    {
+        address ownerCurrentAddress = getCourseOwnerRecipientAddress(
+            courseOwnerId
+        );
+        if (newAddress == ownerCurrentAddress)
+            revert CourseOwnerAddressIsSame();
+
+        CourseOwner storage existingOwner = _allCourseOwners[courseOwnerId];
+        existingOwner._address = newAddress;
+    }
+
+    // Function
+    /**
+     * Add a new course owner with his negotiated reward percentage
+     */
+    function addCourseOwner(
+        bytes32 courseOwnerId,
+        address ownerAddress,
+        uint8 rewardPercentage
+    ) external onlyContractOwner {
+        CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
+        if (existingOwner.id > 0) revert CourseOwnerAlreadyExist();
+
+        CourseOwner memory courseOwner = CourseOwner({
+            id: courseOwnerId,
+            _address: ownerAddress,
+            rewardPercentage: rewardPercentage
+        });
+        _allCourseOwners[courseOwnerId] = courseOwner;
+    }
+
+    // Function
+    /**
+     * Add a new course to the contract
+     */
     function addCourse(
         bytes32 id,
         string memory title,
         uint32 price,
-        address courseCreatorAddress
-    ) external onlyOwner {
-        bytes32 descriptionHash = keccak256(
-            abi.encodePacked(id, title, price, courseCreatorAddress)
-        );
+        bytes32 courseOwnerId
+    ) external onlyContractOwner {
+        bytes32 descriptionHash = keccak256(abi.encodePacked(id, title, price));
 
+        //check if course owner exists, if not reject course creation
+        CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
+        if (existingOwner.id == 0) revert CourseOwnerDoNoExist();
+
+        //check if course already exist
         Course memory existingCourse = _allCourses[id];
         if (existingCourse.id > 0 && existingCourse.title == descriptionHash)
             revert CourseAlreadyExist();
@@ -101,14 +180,18 @@ contract Marketplace {
             id: id,
             title: descriptionHash,
             price: price,
-            owner: courseCreatorAddress,
+            owner: existingOwner,
             state: State.Deactivated
         });
 
         _allCourses[id] = course;
     }
 
-    function activateCourse(bytes32 courseId) external onlyOwner {
+    // Function
+    /**
+     * Activate a course, this is necessary before purchasing it
+     */
+    function activateCourse(bytes32 courseId) external onlyContractOwner {
         Course storage course = getCourseFromId(courseId);
         if (course.state == State.Activated) {
             revert CourseIsAlreadyActivated();
@@ -116,7 +199,11 @@ contract Marketplace {
         course.state = State.Activated;
     }
 
-    function deactivateCourse(bytes32 courseId) external onlyOwner {
+    // Function
+    /**
+     * Deactivate a course, this may be needed if the owner does not want to promote his course anymore
+     */
+    function deactivateCourse(bytes32 courseId) external onlyContractOwner {
         Course storage course = getCourseFromId(courseId);
         if (course.state == State.Deactivated) {
             revert CourseIsAlreadyDeactivated();
@@ -124,26 +211,42 @@ contract Marketplace {
         course.state = State.Deactivated;
     }
 
-    function splitAmount(address recipient, uint256 amount)
+    // Function
+    /**
+     * Split purchase as following : The course owner is funded with a negotiated reward % of the course price, the rest left goes to the marketplace contract owner
+     */
+    function splitAmount(CourseOwner memory courseOwner, uint256 amount)
         private
         noReentrant
     {
-        //I want the course owner to be rewarded with 80% of the course price
-        //The 20% left go to the marketplace contract owner
-        uint256 courseOwnwerAmount = amount.div(5).mul(4);
-        uint256 contractOwnwerAmount = amount.div(5);
+        uint256 courseOwnwerAmount = amount
+            .mul(courseOwner.rewardPercentage)
+            .div(100);
+        uint256 contractOwnwerAmount = amount - courseOwnwerAmount;
 
-        (bool successTransferCourseOwner, ) = recipient.call{
+        //Transfer funds to course owner
+        (bool successTransferCourseOwner, ) = courseOwner._address.call{
             value: courseOwnwerAmount
         }("");
-        require(successTransferCourseOwner, "Transfer failed.");
+        require(
+            successTransferCourseOwner,
+            "Transfer funds to course owner failed."
+        );
 
-        (bool successTransferContractOwner, ) = _owner.call{
+        //Tranfer the rest to contract owner
+        (bool successTransferContractOwner, ) = _contractOwner.call{
             value: contractOwnwerAmount
         }("");
-        require(successTransferContractOwner, "Transfer failed.");
+        require(
+            successTransferContractOwner,
+            "Transfer funds to contract owner failed."
+        );
     }
 
+    // Function
+    /**
+     * Purchase a course (must be activated first), funds are transfered to different parties(course owner and contract owner)
+     */
     function purchaseCourse(bytes32 courseId)
         external
         payable
@@ -155,9 +258,12 @@ contract Marketplace {
             Course memory course = getCourseFromId(courseId);
             course.price = msg.value;
             course.state = State.Purchased;
+            //get latest update from course owner (cowner may have chnaged his fund's recipient address)
+            CourseOwner memory courseOwner = _allCourseOwners[course.owner.id];
+            course.owner = courseOwner;
             _ownedCourses[msg.sender].push(course);
 
-            splitAmount(course.owner, msg.value);
+            splitAmount(course.owner, course.price);
             return;
         }
 
@@ -173,6 +279,10 @@ contract Marketplace {
         return course.price;
     }
 
+    // Function
+    /**
+     * For a given address and course id, check if a course has already been bought
+     */
     function hasCourseAlreadyBeenBought(address _address, bytes32 courseHashId)
         private
         view
@@ -187,6 +297,10 @@ contract Marketplace {
         return false;
     }
 
+    // Function
+    /**
+     * For a given address, returns all bought courses
+     */
     function getUserBoughtCoursesIds(address _address)
         external
         view
@@ -211,6 +325,10 @@ contract Marketplace {
         return ids;
     }
 
+    // Function
+    /**
+     * For a given course id, returns a course object
+     */
     function getCourseFromId(bytes32 courseId)
         private
         view
@@ -221,21 +339,39 @@ contract Marketplace {
             return course;
         } else revert("No course found");
     }
+
+    function getCourseOwnerRecipientAddress(bytes32 courseOwnerId)
+        private
+        view
+        returns (address _address)
+    {
+        CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
+        if (existingOwner.id == 0) revert CourseOwnerDoNoExist();
+        return existingOwner._address;
+    }
 }
 
-// list of guids from frotend
-// Course 1 id : 97acd90d-5715-454e-a9a4-211f1a9fb4aa
-// Course 2 id : b1642964-9d92-4284-9eb9-b46b522a1ef5
-// Course 3 id : b8c2897c-5a8b-4e2c-89f9-53d409ef8515
+//contract interaction testing
+// 1. Add a new course owner with function: addCourseOwner
+// 2. Add a new course with function: addCourse
+// 3. Activate previously added course with function: activateCourse
+// 4. Make a course purchase with function: purchaseCourse
+// Check that all parties have received the funds (course owner and contract owner)
+
+// 5. Course owner requested to change his recipient funds address, use function: changeCourseOwnerAddress
+// 6. Try buying another course from that owner and check again if the new recipient address has received his funds
+
+//Course owner id : guid = 89668047-4e15-4038-bfe3-ca48d49cefe0
+//keccak-256 : 0x56e10badce74380d80504ec8a27c7c04659dbf3c681eb29331f7ff050d889dc8
 
 // Course 1 keccak-256 : 7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717
 // Course 2 keccak-256 : 4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f
 // Course 3 keccak-256 : 50477dd0f75cca5cf8518db7062e7b9e378f467b829c26d4a0a8046683dd3654
 
 // const instance = await Marketplace.deployed()
-//instance.addCourse({id: '0x7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717', description: 'Solidity for beginners', price: 75});
-//instance.addCourse('0x4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f', 'Solidity for advanced', 120);
-//instance.addCourse('0x50477dd0f75cca5cf8518db7062e7b9e378f467b829c26d4a0a8046683dd3654', 'Css complete course', 250);
+//instance.addCourse('0x7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717', description: 'Solidity for beginners', price: 75, '0x56e10badce74380d80504ec8a27c7c04659dbf3c681eb29331f7ff050d889dc8');
+//instance.addCourse('0x4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f', 'Solidity for advanced', 120,'0x56e10badce74380d80504ec8a27c7c04659dbf3c681eb29331f7ff050d889dc8');
+//instance.addCourse('0x50477dd0f75cca5cf8518db7062e7b9e378f467b829c26d4a0a8046683dd3654', 'Css complete course', 250, '0x56e10badce74380d80504ec8a27c7c04659dbf3c681eb29331f7ff050d889dc8');
 
 //instance.activateCourse(0x7a01148c2ddec8a0d111c7d674f007130b4c17be41c7e392bb11acec6539d717);
 //instance.activateCourse(0x4371c95e9d6e5330b64fcdeaaf9f07de8458c2b554fa9bb14217f890e6de364f);
