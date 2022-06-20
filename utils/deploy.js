@@ -1,51 +1,41 @@
 const dotenv = require('dotenv');
 const dotenvExpand = require('dotenv-expand');
-const path = require('path');
-const compileUtil = require("./compile");
-const Web3 = require("web3");
-const keccak256 = require('keccak256');
 const CoursesFetcher = require('../content/courses/fetcher');
-
-const baseContractName = "Marketplace";
-const defaultGas = 5000000; // Rinkeby has a lower block limit than mainnet
-var baseContractSolidityFile = path.resolve("contracts", "MarketplaceContract.sol");
-var baseContractFileName = path.basename(baseContractSolidityFile);
-
-//compile contract and its dependencies
-var contract = compileUtil.compileContracts(baseContractSolidityFile);
+const web3Utils = require('./web3Utils');
+const path = require('path');
 
 var myEnv = dotenv.config();
 dotenvExpand.expand(myEnv);
 
 var web3 = null;
+var account = null;
 try {
-    web3 = new Web3(new Web3.providers.WebsocketProvider(process.env.INFURA_WS_NETWORK));
+    web3 = web3Utils.Create();
     console.log("Connection Successfull!");
+
+    web3.eth.accounts.wallet.add(process.env.PRIVATE_KEY);
+    account = web3.eth.accounts.wallet[0];
 }
 catch (e) {
     console.log("Connection Error!", e);
 }
 
-const getKeccak256HexValueFromInput = (value) => {
-    return "0x" + keccak256(value).toString('hex');
-}
-
 // Deploy contract
 const deploy = async (contract) => {
     const gas = await web3.eth.getGasPrice();
-    console.log('Attempting to deploy from account:', web3Account);
+    console.log('Attempting to deploy from account:', account.address);
 
     const incrementer = new web3.eth.Contract(contract.abi);
     const incrementerTx = incrementer.deploy({ data: "0x" + contract.evm.bytecode.object });
 
     const createTransaction = await web3.eth.accounts.signTransaction(
         {
-            from: web3Account,
+            from: account.address,
             data: incrementerTx.encodeABI(),
             gasPrice: gas,
-            gas: defaultGas
+            gas: web3Utils.defaultGas
         },
-        process.env.PRIVATE_KEY
+        account.privateKey
     );
     console.log('Sending transaction... please wait.');
     const createReceipt = await web3.eth.sendSignedTransaction(
@@ -60,13 +50,13 @@ const addCourseOwnerToContract = async (deployedContract, user) => {
     const method = deployedContract.methods.addCourseOwner(user.id, user.address, user.rewardPercentage);
     const createTransaction = await web3.eth.accounts.signTransaction(
         {
-            from: web3Account,
+            from: account.address,
             to: deployedContract._address,
             data: method.encodeABI(),
             gasPrice: gas,
-            gas: defaultGas
+            gas: web3Utils.defaultGas
         },
-        process.env.PRIVATE_KEY
+        account.privateKey
     );
     console.log('Sending transaction... please wait.');
     // Send Tx and Wait for Receipt
@@ -79,13 +69,13 @@ const addCourseToContract = async (deployedContract, course) => {
     const method = deployedContract.methods.addCourse(course.id, course.title, course.price, course.courseOwner);
     const createTransaction = await web3.eth.accounts.signTransaction(
         {
-            from: web3Account,
+            from: account.address,
             to: deployedContract._address,
             data: method.encodeABI(),
             gasPrice: gas,
-            gas: defaultGas
+            gas: web3Utils.defaultGas
         },
-        process.env.PRIVATE_KEY
+        account.privateKey
     );
     console.log('Sending transaction... please wait.');
     // Send Tx and Wait for Receipt
@@ -100,13 +90,13 @@ const activateCourse = async (deployedContract, course, shouldActivate = true) =
 
     const createTransaction = await web3.eth.accounts.signTransaction(
         {
-            from: web3Account,
+            from: account.address,
             to: deployedContract._address,
             data: method.encodeABI(),
             gasPrice: gas,
-            gas: defaultGas
+            gas: web3Utils.defaultGas
         },
-        process.env.PRIVATE_KEY
+        account.privateKey
     );
     console.log('Sending transaction... please wait.');
     // Send Tx and Wait for Receipt
@@ -114,16 +104,12 @@ const activateCourse = async (deployedContract, course, shouldActivate = true) =
     return createReceipt;
 };
 
-let web3Account = null;
 if (web3) {
-    web3.eth.accounts.wallet.add(process.env.PRIVATE_KEY);
-    web3Account = web3.eth.accounts.wallet[0].address;
-
     try {
         (async () => {
-            var contract_deployedTx = await deploy(contract.contracts[baseContractFileName][baseContractName]);
+            var contract_deployedTx = await deploy(web3Utils.getContractToDeploy());
             if (contract_deployedTx) {
-                const deployedContract = new web3.eth.Contract(contract.contracts[baseContractFileName][baseContractName].abi, contract_deployedTx);
+                const deployedContract = web3Utils.getDeployedContract(web3, contract_deployedTx);
 
                 const allCoursesOwners = CoursesFetcher.getAllCoursesOwnersForContractUse().data;
                 for (let index = 0; index < allCoursesOwners.length; index++) {
@@ -136,7 +122,7 @@ if (web3) {
                 const allCourses = CoursesFetcher.getAllParsedCoursesForContractUse().data;
                 for (let index = 0; index < allCourses.length; index++) {
                     const course = allCourses[index];
-                    course.id = getKeccak256HexValueFromInput(course.id);
+                    course.id = web3Utils.getKeccak256HexValueFromInput(course.id);
                     try {
                         //add a course to the blockchain
                         console.log(`Add course : ${course.id} : ${course.title}`);
