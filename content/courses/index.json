@@ -12,7 +12,7 @@
             "Use Shopify to your advantage"
         ],
         "price": 75,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0x8105bc7cf3656bee6a3160292d40861ab3d6dc32709f00d0a84a171940f022bd",
         "createdAt": ""
     },
     {
@@ -29,7 +29,7 @@
             "Use GraphQL to your advantage"
         ],
         "price": 55,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0x8105bc7cf3656bee6a3160292d40861ab3d6dc32709f00d0a84a171940f022bd",
         "createdAt": ""
     },
     {
@@ -48,7 +48,7 @@
             "Math explanations behind the code."
         ],
         "price": 90,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0x8105bc7cf3656bee6a3160292d40861ab3d6dc32709f00d0a84a171940f022bd",
         "createdAt": ""
     },
     {
@@ -67,7 +67,7 @@
             "Publish your own game on Facebook Instant Games"
         ],
         "price": 15,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0xd24d006239a05d828b52c4994d8d1787b0c7294d5fd6b6a31ef7d57370e665b3",
         "createdAt": ""
     },
     {
@@ -86,7 +86,7 @@
             "Learn how to use React JS in combination with Electron"
         ],
         "price": 40,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0xd24d006239a05d828b52c4994d8d1787b0c7294d5fd6b6a31ef7d57370e665b3",
         "createdAt": ""
     },
     {
@@ -104,7 +104,7 @@
             "Base and core concepts of the three most popular frameworks"
         ],
         "price": 75,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0xd24d006239a05d828b52c4994d8d1787b0c7294d5fd6b6a31ef7d57370e665b3",
         "createdAt": ""
     },
     {
@@ -121,7 +121,7 @@
             "Base and core concepts of Vue JS 3"
         ],
         "price": 55,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0x38d7f4c501cf4f0eeb3619fd5e681068de952d91cd9ce0f5cf3c7fd7e78c81b5",
         "createdAt": ""
     },
     {
@@ -140,7 +140,7 @@
             "Establish yourself in field of the exciting Next and React web development environment"
         ],
         "price": 90,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0x38d7f4c501cf4f0eeb3619fd5e681068de952d91cd9ce0f5cf3c7fd7e78c81b5",
         "createdAt": ""
     },
     {
@@ -159,7 +159,7 @@
             "Establish yourself in field of the exciting Angular, React and Node web development environment"
         ],
         "price": 50,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0x38d7f4c501cf4f0eeb3619fd5e681068de952d91cd9ce0f5cf3c7fd7e78c81b5",
         "createdAt": ""
     },
     {
@@ -177,7 +177,7 @@
             "Use gained knowledge to create your own Web Applications"
         ],
         "price": 35,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0x38d7f4c501cf4f0eeb3619fd5e681068de952d91cd9ce0f5cf3c7fd7e78c81b5",
         "createdAt": ""
     },
     {
@@ -195,7 +195,7 @@
             "Use gained knowledge to create your own Web Applications"
         ],
         "price": 65,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0x38d7f4c501cf4f0eeb3619fd5e681068de952d91cd9ce0f5cf3c7fd7e78c81b5",
         "createdAt": ""
     },
     {
@@ -214,7 +214,7 @@
             "Integrate Sanity CMS"
         ],
         "price": 110,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0xd24d006239a05d828b52c4994d8d1787b0c7294d5fd6b6a31ef7d57370e665b3",
         "createdAt": ""
     },
     {
@@ -232,7 +232,7 @@
             "Grasp full power of GraphQL"
         ],
         "price": 59,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0xd24d006239a05d828b52c4994d8d1787b0c7294d5fd6b6a31ef7d57370e665b3",
         "createdAt": ""
     },
     {
@@ -251,7 +251,7 @@
             "Become fluent in concepts and tools like Vuex, MongoDb, Sockets, Authentication"
         ],
         "price": 65,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0xd24d006239a05d828b52c4994d8d1787b0c7294d5fd6b6a31ef7d57370e665b3",
         "createdAt": ""
     },
     {
@@ -270,7 +270,7 @@
             "Become fluent in concepts and tools like SSR, Vuex, Vuelidate and more"
         ],
         "price": 80,
-        "courseOwner": "0x06Cfb38C30775505C934A1bA364bfFEDfbFAfE37",
+        "courseOwner": "0xd24d006239a05d828b52c4994d8d1787b0c7294d5fd6b6a31ef7d57370e665b3",
         "createdAt": ""
     }
 ]

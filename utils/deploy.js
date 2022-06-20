@@ -26,6 +26,10 @@ catch (e) {
     console.log("Connection Error!", e);
 }
 
+const getKeccak256HexValueFromInput = (value) => {
+    return "0x" + keccak256(value).toString('hex');
+}
+
 // Deploy contract
 const deploy = async (contract) => {
     const gas = await web3.eth.getGasPrice();
@@ -49,6 +53,25 @@ const deploy = async (contract) => {
     );
     console.log('Contract deployed at address', createReceipt.contractAddress);
     return createReceipt.contractAddress;
+};
+
+const addCourseOwnerToContract = async (deployedContract, user) => {
+    const gas = await web3.eth.getGasPrice();
+    const method = deployedContract.methods.addCourseOwner(user.id, user.address, user.rewardPercentage);
+    const createTransaction = await web3.eth.accounts.signTransaction(
+        {
+            from: web3Account,
+            to: deployedContract._address,
+            data: method.encodeABI(),
+            gasPrice: gas,
+            gas: defaultGas
+        },
+        process.env.PRIVATE_KEY
+    );
+    console.log('Sending transaction... please wait.');
+    // Send Tx and Wait for Receipt
+    const createReceipt = await web3.eth.sendSignedTransaction(createTransaction.rawTransaction);
+    return createReceipt;
 };
 
 const addCourseToContract = async (deployedContract, course) => {
@@ -91,19 +114,6 @@ const activateCourse = async (deployedContract, course, shouldActivate = true) =
     return createReceipt;
 };
 
-const getCoursePrice = async (deployedContract, idCourse) => {
-    var res = await deployedContract.methods.getCoursePrice(idCourse)
-        .call({ from: web3Account }, function (err, result) {
-            if (err) {
-                console.log(`An error occured when trying to get course price for ${idCourse}`, err)
-                return;
-            }
-            return result;
-        });
-
-    return res;
-};
-
 let web3Account = null;
 if (web3) {
     web3.eth.accounts.wallet.add(process.env.PRIVATE_KEY);
@@ -115,19 +125,27 @@ if (web3) {
             if (contract_deployedTx) {
                 const deployedContract = new web3.eth.Contract(contract.contracts[baseContractFileName][baseContractName].abi, contract_deployedTx);
 
+                const allCoursesOwners = CoursesFetcher.getAllCoursesOwnersForContractUse().data;
+                for (let index = 0; index < allCoursesOwners.length; index++) {
+                    const owner = allCoursesOwners[index];
+                    console.log(`Add course owner :${owner.address}`);
+                    var createCourseOwnerResult = await addCourseOwnerToContract(deployedContract, owner);
+                    console.log(`Course owner successfully added with tx hash: ${createCourseOwnerResult.transactionHash}`);
+                }
+
                 const allCourses = CoursesFetcher.getAllParsedCoursesForContractUse().data;
                 for (let index = 0; index < allCourses.length; index++) {
                     const course = allCourses[index];
-                    course.id = "0x" + keccak256(course.id).toString('hex');
+                    course.id = getKeccak256HexValueFromInput(course.id);
                     try {
                         //add a course to the blockchain
-                        console.log(`Add course to contract: ${course.id} : ${course.title}`);
+                        console.log(`Add course : ${course.id} : ${course.title}`);
                         var result = await addCourseToContract(deployedContract, course);
                         console.log(`Course successfully added with tx hash: ${result.transactionHash}`);
 
                         //activate a course
                         console.log(`Activate course: ${course.id} : ${course.title}`);
-                        var result = await activateCourse(deployedContract, course, false);
+                        var result = await activateCourse(deployedContract, course);
                         console.log(`Course successfully activated with tx hash: ${result.transactionHash}`);
                     }
                     catch (e) {
