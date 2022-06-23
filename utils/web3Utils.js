@@ -41,8 +41,16 @@ const getKeccak256HexValueFromInput = (value) => {
     return "0x" + keccak256(value).toString('hex');
 }
 
+const getSpeedupGasPrice = async (web3) => {
+    var result = await web3.eth.getGasPrice();
+    var valueFloat = parseFloat(result);
+    gas = Math.floor(valueFloat + (valueFloat * 0.5)); //50% more than current gas price
+    return gas.toString();
+}
+
 module.exports.defaultGas = rinkebyDefaultGas;
 module.exports.Create = CreateWeb3Connection;
 module.exports.getKeccak256HexValueFromInput = getKeccak256HexValueFromInput;
 module.exports.getContractToDeploy = getContractToDeploy;
 module.exports.getDeployedContract = getDeployedContract;
+module.exports.getGas = getSpeedupGasPrice;
