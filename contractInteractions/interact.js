@@ -62,7 +62,7 @@ const activateCourse = async (web3, deployedContract, account, course, shouldAct
 };
 
 const purchaseCourse = async (web3, deployedContract, account, course) => {
-    var ethExchangeRate = await GetETHExchangeRate();
+    var ethExchangeRate = await GetETHExchangeRate(web3, process.env.PRICEFEED_RINKEBY);
     var finalPriceEth = course.price * ethExchangeRate;
     var valueToSend = Web3.utils.toWei(finalPriceEth.toString(), 'ether');
 

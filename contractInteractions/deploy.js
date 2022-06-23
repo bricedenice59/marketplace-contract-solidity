@@ -1,6 +1,5 @@
 const dotenv = require('dotenv');
 const dotenvExpand = require('dotenv-expand');
-const CoursesFetcher = require('../content/courses/fetcher');
 const web3Utils = require('../utils/web3Utils');
 
 var myEnv = dotenv.config();
