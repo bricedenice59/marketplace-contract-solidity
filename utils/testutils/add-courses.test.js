@@ -1,4 +1,4 @@
-const web3Utils = require('../utils/web3Utils');
+const web3Utils = require('../web3Utils');
 
 const { v4: uuidv4 } = require('uuid');
 const ContractBase = require('./contract-base.js');

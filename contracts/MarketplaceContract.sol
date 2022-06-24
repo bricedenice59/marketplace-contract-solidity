@@ -44,7 +44,7 @@ contract Marketplace {
     mapping(bytes32 => Course) private _allCourses;
 
     // list of all course owners who have course stored in this contract
-    mapping(bytes32 => CourseOwner) public _allCourseOwners;
+    mapping(bytes32 => CourseOwner) private _allCourseOwners;
 
     constructor() {
         setContractOwner(msg.sender);
@@ -54,6 +54,7 @@ contract Marketplace {
 
     error OnlyOwner();
     error CourseOwnerAddressIsSame();
+    error CourseOwnerRewardPercentageOutOfBound();
     error CourseOwnerAlreadyExist();
     error CourseAlreadyBought();
     error CourseOwnerDoNoExist();
@@ -125,9 +126,7 @@ contract Marketplace {
         external
         onlyContractOwner
     {
-        address ownerCurrentAddress = getCourseOwnerRecipientAddress(
-            courseOwnerId
-        );
+        (address ownerCurrentAddress, ) = getCourseOwnerData(courseOwnerId);
         if (newAddress == ownerCurrentAddress)
             revert CourseOwnerAddressIsSame();
 
@@ -144,6 +143,9 @@ contract Marketplace {
         address ownerAddress,
         uint8 rewardPercentage
     ) external onlyContractOwner {
+        if (rewardPercentage > 100)
+            revert CourseOwnerRewardPercentageOutOfBound();
+
         CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
         if (existingOwner.id > 0) revert CourseOwnerAlreadyExist();
 
@@ -181,7 +183,7 @@ contract Marketplace {
             title: descriptionHash,
             price: price,
             owner: existingOwner,
-            state: State.Deactivated
+            state: State.Activated
         });
 
         _allCourses[id] = course;
@@ -340,14 +342,14 @@ contract Marketplace {
         } else revert("No course found");
     }
 
-    function getCourseOwnerRecipientAddress(bytes32 courseOwnerId)
-        private
+    function getCourseOwnerData(bytes32 courseOwnerId)
+        public
         view
-        returns (address _address)
+        returns (address _address, uint256 rewardPercentage)
     {
         CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
         if (existingOwner.id == 0) revert CourseOwnerDoNoExist();
-        return existingOwner._address;
+        return (existingOwner._address, existingOwner.rewardPercentage);
     }
 }
 

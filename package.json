@@ -20,15 +20,18 @@
     "react-dom": "18.1.0",
     "solc": "^0.8.14-fixed",
     "sqlite3": "^5.0.8",
-    "uuid": "^8.3.2",
-    "web3": "^1.7.3"
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@nomiclabs/hardhat-truffle5": "^2.0.6",
+    "@nomiclabs/hardhat-web3": "^2.0.0",
     "autoprefixer": "^10.4.7",
     "eslint": "8.17.0",
     "eslint-config-next": "12.1.6",
+    "hardhat": "^2.9.9",
     "jest": "^28.1.1",
     "postcss": "^8.4.14",
-    "tailwindcss": "^3.1.2"
+    "tailwindcss": "^3.1.2",
+    "web3": "^1.7.4"
   }
 }

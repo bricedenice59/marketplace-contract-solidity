@@ -26,3 +26,5 @@ package-lock.json
 public/contracts/*
 .next/*
 .env
+artifacts/*
+cache/*

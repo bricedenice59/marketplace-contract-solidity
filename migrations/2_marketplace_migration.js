@@ -1,5 +1,5 @@
-const MarketplaceMigration = artifacts.require("Marketplace");
+const Marketplace = artifacts.require("Marketplace");
 
 module.exports = function (deployer) {
-  deployer.deploy(MarketplaceMigration);
+  deployer.deploy(Marketplace);
 };

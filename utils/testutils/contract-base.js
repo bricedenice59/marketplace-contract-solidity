@@ -1,6 +1,6 @@
-const web3Utils = require('../utils/web3Utils');
-const CoursesFetcher = require('../content/courses/fetcher');
-const ContractInteract = require('../contractInteractions/interact');
+const web3Utils = require('../web3Utils');
+const CoursesFetcher = require('../../content/courses/fetcher');
+const ContractInteract = require('../../contractInteractions/interact');
 
 module.exports = class ContractBase {
     web3 = null;
