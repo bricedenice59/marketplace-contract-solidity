@@ -1,28 +1,7 @@
 const Marketplace = artifacts.require("Marketplace");
 const { v4: uuidv4 } = require('uuid');
 const web3Utils = require('../utils/web3Utils');
-
-generateCourse = async (course) => {
-    var result = await instance.addNewCourse(course);
-    return result;
-}
-
-function getRandomNumberBetween(min, max) {
-    return Math.floor(
-        Math.random() * (max - min + 1) + min
-    )
-}
-
-function generateRandomString(length) {
-    var result = '';
-    var characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    var charactersLength = characters.length;
-    for (var i = 0; i < length; i++) {
-        result += characters.charAt(Math.floor(Math.random() *
-            charactersLength));
-    }
-    return result;
-}
+const testUtils = require('../utils/testutils/common');
 
 describe("Marketplace contract test", function () {
     var deployedMarketplace;
@@ -63,8 +42,8 @@ describe("Marketplace contract test", function () {
     });
 
     it('Add a new course and retrieve its price', async () => {
-        var price = getRandomNumberBetween(50, 240);
-        var title = generateRandomString(getRandomNumberBetween(20, 70));
+        var price = testUtils.getRandomNumberBetween(50, 240);
+        var title = testUtils.generateRandomString(testUtils.getRandomNumberBetween(20, 70));
 
         var newCourseResult = await deployedMarketplace.addCourse(
             courseId,
@@ -98,11 +77,14 @@ describe("Marketplace contract test", function () {
         const courseOwnerBeforePurchaseBalance = await web3.eth.getBalance(courseOwnerDataAddr);
         const contractOwnerBeforePurchaseBalance = await web3.eth.getBalance(contractOwnerAccountAddress);
 
+        //purchase course
         var newCourseResult = await deployedMarketplace.purchaseCourse(courseId, { from: buyerAccountAddress, value: valueToSend });
 
+        //retrieve the course just purchased
         const coursePurchased = await deployedMarketplace.getUserBoughtCoursesIds(buyerAccountAddress);
         assert.equal(coursePurchased[0], courseId, `The course id that was purchased should be : ${courseId}`);
 
+        //compare before/after balances 
         const courseOwnerAfterBalance = BigInt(await web3.eth.getBalance(courseOwnerDataAddr)) / 100000n;
         const contractOwnerAfterBalance = BigInt(await web3.eth.getBalance(contractOwnerAccountAddress)) / 100000n;
 
