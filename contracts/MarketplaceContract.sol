@@ -52,7 +52,8 @@ contract Marketplace {
 
     receive() external payable {}
 
-    error OnlyOwner();
+    error OnlyContractOwner();
+    error OnlyCourseOwner();
     error CourseOwnerAddressIsSame();
     error CourseOwnerRewardPercentageOutOfBound();
     error CourseOwnerAlreadyExist();
@@ -88,11 +89,26 @@ contract Marketplace {
 
     // Modifier
     /**
+     * Prevents contract interaction with someone else who is not the course owner
+     */
+    modifier onlyCourseOwner(bytes32 courseOwnerId) {
+        //check if course owner exists, if not reject course creation
+        CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
+        if (existingOwner.id == 0) revert CourseOwnerDoNoExist();
+
+        if (msg.sender != existingOwner._address) {
+            revert OnlyCourseOwner();
+        }
+        _;
+    }
+
+    // Modifier
+    /**
      * Prevents contract interaction with someone else who is not the contract owner
      */
     modifier onlyContractOwner() {
         if (msg.sender != _contractOwner) {
-            revert OnlyOwner();
+            revert OnlyContractOwner();
         }
         _;
     }
@@ -114,6 +130,24 @@ contract Marketplace {
         onlyContractOwner
     {
         setContractOwner(newContractOwner);
+    }
+
+    // Function
+    /**
+     * Allows contract owner to withdraw some or all of the funds earned from purchases.
+     */
+    function withdrawMarketplaceFunds(uint256 amount)
+        public
+        onlyContractOwner
+        noReentrant
+    {
+        /**
+         * @param uint Amount to withdraw (in Wei)
+         */
+        uint256 contractBalance = address(this).balance;
+
+        require(contractBalance >= amount, "Insufficient funds");
+        payable(msg.sender).transfer(amount);
     }
 
     // Function
@@ -166,17 +200,15 @@ contract Marketplace {
         string memory title,
         uint32 price,
         bytes32 courseOwnerId
-    ) external onlyContractOwner {
+    ) external onlyCourseOwner(courseOwnerId) {
         bytes32 descriptionHash = keccak256(abi.encodePacked(id, title, price));
-
-        //check if course owner exists, if not reject course creation
-        CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
-        if (existingOwner.id == 0) revert CourseOwnerDoNoExist();
 
         //check if course already exist
         Course memory existingCourse = _allCourses[id];
         if (existingCourse.id > 0 && existingCourse.title == descriptionHash)
             revert CourseAlreadyExist();
+
+        CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
 
         Course memory course = Course({
             id: id,
@@ -215,7 +247,7 @@ contract Marketplace {
 
     // Function
     /**
-     * Split purchase as following : The course owner is funded with a negotiated reward % of the course price, the rest left goes to the marketplace contract owner
+     * Split purchase as following : The course owner is funded with a negotiated reward % of the course price, the rest left goes to the marketplace contract
      */
     function splitAmount(CourseOwner memory courseOwner, uint256 amount)
         private
@@ -235,14 +267,11 @@ contract Marketplace {
             "Transfer funds to course owner failed."
         );
 
-        //Tranfer the rest to contract owner
-        (bool successTransferContractOwner, ) = _contractOwner.call{
+        //Tranfer the rest to contract
+        (bool successTransferContract, ) = address(this).call{
             value: contractOwnwerAmount
         }("");
-        require(
-            successTransferContractOwner,
-            "Transfer funds to contract owner failed."
-        );
+        require(successTransferContract, "Transfer funds to contract failed.");
     }
 
     // Function

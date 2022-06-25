@@ -28,7 +28,7 @@ describe("Marketplace contract test", function () {
     });
 
     it('Add a new course owner and retrieves his address', async () => {
-        const rewardPercentage = 85;
+        const rewardPercentage = 90;
 
         var newCourseOwnerResult = await deployedMarketplace.addCourseOwner(
             courseOwnerId,
@@ -41,20 +41,50 @@ describe("Marketplace contract test", function () {
         assert.equal(courseOwner[0], courseOwnerAccountAddress, `The course owner should be: ${courseOwnerAccountAddress}`)
     });
 
-    it('Add a new course and retrieve its price', async () => {
-        var price = testUtils.getRandomNumberBetween(50, 240);
-        var title = testUtils.generateRandomString(testUtils.getRandomNumberBetween(20, 70));
+    it('Only the course owner can add HIS own new courses to the contract, it shoud fail if different', async () => {
+        var price = testUtils.getRandomNumberBetween(250, 400);
+        var title = testUtils.generateRandomString(testUtils.getRandomNumberBetween(30, 70));
 
         var newCourseResult = await deployedMarketplace.addCourse(
             courseId,
             title,
             price,
             courseOwnerId,
-            { from: contractOwnerAccountAddress }
+            { from: courseOwnerAccountAddress }
         )
 
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
-        assert.equal(coursePrice.toNumber(), price, `The course owner should have a price of: ${price}`);
+        assert.equal(coursePrice.toNumber(), price, `The course should have a price of: ${price}`);
+
+        try {
+            var anotherCourseResult = await deployedMarketplace.addCourse(
+                web3Utils.getKeccak256HexValueFromInput(uuidv4()),
+                testUtils.generateRandomString(testUtils.getRandomNumberBetween(40, 90)),
+                testUtils.getRandomNumberBetween(50, 100),
+                courseOwnerId,
+                { from: buyerAccountAddress }
+            )
+            throw ('Operation should have failed');
+        } catch (e) {
+            assert.match(e, /VM Exception while processing transaction: revert/, 'OnlyCourseOwner()')
+        }
+    });
+
+    it('The contract owner cannot publish a course, it should fail', async () => {
+        var price = testUtils.getRandomNumberBetween(50, 100);
+        var title = testUtils.generateRandomString(testUtils.getRandomNumberBetween(40, 90));
+        try {
+            var newCourseResult = await deployedMarketplace.addCourse(
+                web3Utils.getKeccak256HexValueFromInput(uuidv4()),
+                title,
+                price,
+                courseOwnerId,
+                { from: contractOwnerAccountAddress }
+            );
+            throw ('Operation should have failed');
+        } catch (e) {
+            assert.match(e, /VM Exception while processing transaction: revert/, 'Only the store front owner can edit the product')
+        }
     });
 
     it('Purchase a course and check if both course owner and contract owner have received the money according the reward percentage previously negotiated', async () => {
@@ -71,11 +101,11 @@ describe("Marketplace contract test", function () {
 
         //split funds calculation
         const fundsValuetoBeSentToCourseOwner = ((valueToSend * courseOwnerRewardPercentage.toNumber()) / 100);
-        const contractOwnerPercentage = (100 - courseOwnerRewardPercentage.toNumber());
-        const fundsValuetoBeSentToContractOwner = ((valueToSend * contractOwnerPercentage) / 100);
+        const contractPercentage = (100 - courseOwnerRewardPercentage.toNumber());
+        const fundsValuetoBeSentToContract = ((valueToSend * contractPercentage) / 100);
 
         const courseOwnerBeforePurchaseBalance = await web3.eth.getBalance(courseOwnerDataAddr);
-        const contractOwnerBeforePurchaseBalance = await web3.eth.getBalance(contractOwnerAccountAddress);
+        const contractBeforePurchaseBalance = await web3.eth.getBalance(deployedMarketplace.address);
 
         //purchase course
         var newCourseResult = await deployedMarketplace.purchaseCourse(courseId, { from: buyerAccountAddress, value: valueToSend });
@@ -86,15 +116,50 @@ describe("Marketplace contract test", function () {
 
         //compare before/after balances 
         const courseOwnerAfterBalance = BigInt(await web3.eth.getBalance(courseOwnerDataAddr)) / 100000n;
-        const contractOwnerAfterBalance = BigInt(await web3.eth.getBalance(contractOwnerAccountAddress)) / 100000n;
+        const contractAfterBalance = BigInt(await web3.eth.getBalance(deployedMarketplace.address)) / 100000n;
 
-        const expectedContractOwnerAfterBalance = (BigInt(contractOwnerBeforePurchaseBalance) + BigInt(fundsValuetoBeSentToContractOwner)) / 100000n;
+        const expectedContractAfterBalance = (BigInt(contractBeforePurchaseBalance) + BigInt(fundsValuetoBeSentToContract)) / 100000n;
         const expectedCourseOwnerAfterBalance = (BigInt(courseOwnerBeforePurchaseBalance) + BigInt(fundsValuetoBeSentToCourseOwner)) / 100000n;
 
         assert.equal(parseFloat(courseOwnerAfterBalance), parseFloat(expectedCourseOwnerAfterBalance),
             `${courseOwnerRewardPercentage}% of the sale should be credited to the course owner`);
-        assert.equal(parseFloat(contractOwnerAfterBalance), parseFloat(expectedContractOwnerAfterBalance),
-            `${contractOwnerPercentage}% of the sale should be credited to the marketplace.`
+        assert.equal(parseFloat(contractAfterBalance), parseFloat(expectedContractAfterBalance),
+            `${contractPercentage}% of the sale should be credited to the marketplace.`
         );
+    });
+
+    it('Only the contract owner can withdraw some or all funds from the marketplace', async () => {
+        const fundstoWithdraw = Web3.utils.toWei(0.02.toString(), 'ether');
+        try {
+            var withdrawResult = await deployedMarketplace.withdrawMarketplaceFunds(
+                fundstoWithdraw,
+                { from: courseOwnerAccountAddress }
+            );
+            throw ('Operation should have failed');
+        } catch (e) {
+            assert.match(e, /VM Exception while processing transaction: revert/, 'OnlyContractOwner()')
+        }
+    });
+
+    it('Withdraw some of the marketplace funds', async () => {
+        const fundstoWithdraw = Web3.utils.toWei(0.02.toString(), 'ether');
+        const contractBeforeWithdrawBalance = await web3.eth.getBalance(deployedMarketplace.address);
+        const contractOwnerBeforeWithdrawBalance = await web3.eth.getBalance(contractOwnerAccountAddress);
+
+        var withdrawResult = await deployedMarketplace.withdrawMarketplaceFunds(
+            fundstoWithdraw,
+            { from: contractOwnerAccountAddress }
+        );
+
+        const contractAfterWithdrawBalance = await web3.eth.getBalance(deployedMarketplace.address);
+        const contractOwnerAfterWithdrawBalance = await web3.eth.getBalance(contractOwnerAccountAddress);
+
+        const expectedContractAfterWithdrawBalance = (BigInt(contractBeforeWithdrawBalance) - BigInt(fundstoWithdraw));
+        const expectedContractOwnerAfterWithdrawBalance = (BigInt(contractOwnerBeforeWithdrawBalance) + BigInt(fundstoWithdraw));
+
+        assert.equal(parseFloat(contractAfterWithdrawBalance), parseFloat(expectedContractAfterWithdrawBalance),
+            `The expected contract balance after withdrawal should be: ${parseFloat(expectedContractAfterWithdrawBalance)}`);
+        assert.isAtMost(parseFloat(contractOwnerAfterWithdrawBalance), parseFloat(expectedContractOwnerAfterWithdrawBalance),
+            `The expected contract owner balance after withdrawal should be: ${parseFloat(expectedContractOwnerAfterWithdrawBalance)}`);
     });
 });
