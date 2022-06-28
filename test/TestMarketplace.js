@@ -8,6 +8,7 @@ describe("Marketplace contract test", function () {
     var contractOwnerAccountAddress;
     var courseOwnerAccountAddress;
     var buyerAccountAddress;
+    var newcontractOwnerAccountAddress;
 
     var courseOwnerId;
     var courseId;
@@ -19,6 +20,7 @@ describe("Marketplace contract test", function () {
         contractOwnerAccountAddress = accounts[0];
         courseOwnerAccountAddress = accounts[1];
         buyerAccountAddress = accounts[2];
+        newcontractOwnerAccountAddress = accounts[3];
 
         //generate a new course owner ID
         courseOwnerId = web3Utils.getKeccak256HexValueFromInput(courseOwnerAccountAddress);
@@ -42,7 +44,7 @@ describe("Marketplace contract test", function () {
     });
 
     it('Only the course owner can add HIS own new courses to the contract, it shoud fail if different', async () => {
-        var price = testUtils.getRandomNumberBetween(250, 400);
+        var price = testUtils.getRandomNumberBetween(2500, 4000);
         var title = testUtils.generateRandomString(testUtils.getRandomNumberBetween(30, 70));
 
         var newCourseResult = await deployedMarketplace.addCourse(
@@ -161,5 +163,31 @@ describe("Marketplace contract test", function () {
             `The expected contract balance after withdrawal should be: ${parseFloat(expectedContractAfterWithdrawBalance)}`);
         assert.isAtMost(parseFloat(contractOwnerAfterWithdrawBalance), parseFloat(expectedContractOwnerAfterWithdrawBalance),
             `The expected contract owner balance after withdrawal should be: ${parseFloat(expectedContractOwnerAfterWithdrawBalance)}`);
+    });
+
+    it('Transfer marketplace ownership', async () => {
+        var transferOwnershipResult = await deployedMarketplace.transferOwnership(
+            newcontractOwnerAccountAddress,
+            { from: contractOwnerAccountAddress }
+        );
+
+        var expectedNewContractOwner = await deployedMarketplace.getContractOwner();
+
+        assert.equal(newcontractOwnerAccountAddress, expectedNewContractOwner,
+            `The expected contract owner should be: ${expectedNewContractOwner}`);
+    });
+
+    it('Try withdraw some of the marketplace funds with the old contract owner address; it should fail', async () => {
+        const fundstoWithdraw = Web3.utils.toWei(0.001.toString(), 'ether');
+
+        try {
+            var withdrawResult = await deployedMarketplace.withdrawMarketplaceFunds(
+                fundstoWithdraw,
+                { from: contractOwnerAccountAddress }
+            );
+            throw ('Operation should have failed');
+        } catch (e) {
+            assert.match(e, /VM Exception while processing transaction: revert/, 'OnlyContractOwner()')
+        }
     });
 });

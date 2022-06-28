@@ -11,12 +11,11 @@ contract Marketplace {
     using SafeMath for uint256;
 
     // boolean to prevent reentrancy
-    bool _locked = false;
+    bool locked = false;
 
-    address payable private _contractOwner;
+    address payable private contractOwner;
 
     enum State {
-        NotPurchasedYet,
         Purchased,
         Activated,
         Deactivated
@@ -58,21 +57,27 @@ contract Marketplace {
     error CourseOwnerRewardPercentageOutOfBound();
     error CourseOwnerAlreadyExist();
     error CourseAlreadyBought();
-    error CourseOwnerDoNoExist();
-    error CourseAlreadyExist();
+    error CourseOwnerDoesNotExist();
+    error CourseDoesNotExist();
+    error CourseDoesAlreadyExist();
     error CourseMustBeActivated();
     error CourseIsAlreadyDeactivated();
     error CourseIsAlreadyActivated();
+
+    //common error with funds transfer/withdrawal
+    error InsufficientFunds();
+    error WithdrawalFundsFailed();
+    error TransferFundsFailed();
 
     // Modifier
     /**
      * Prevents reentrancy
      */
     modifier noReentrant() {
-        require(!_locked, "No re-entrancy");
-        _locked = true;
+        require(!locked, "No re-entrancy");
+        locked = true;
         _;
-        _locked = false;
+        locked = false;
     }
 
     // Modifier
@@ -94,7 +99,7 @@ contract Marketplace {
     modifier onlyCourseOwner(bytes32 courseOwnerId) {
         //check if course owner exists, if not reject course creation
         CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
-        if (existingOwner.id == 0) revert CourseOwnerDoNoExist();
+        if (existingOwner.id == 0) revert CourseOwnerDoesNotExist();
 
         if (msg.sender != existingOwner._address) {
             revert OnlyCourseOwner();
@@ -107,7 +112,7 @@ contract Marketplace {
      * Prevents contract interaction with someone else who is not the contract owner
      */
     modifier onlyContractOwner() {
-        if (msg.sender != _contractOwner) {
+        if (msg.sender != contractOwner) {
             revert OnlyContractOwner();
         }
         _;
@@ -115,10 +120,18 @@ contract Marketplace {
 
     // Function
     /**
+     * Get current contract owner
+     */
+    function getContractOwner() external view returns (address _address) {
+        return contractOwner;
+    }
+
+    // Function
+    /**
      * Set a new contract owner
      */
     function setContractOwner(address newContractOwner) private {
-        _contractOwner = payable(newContractOwner);
+        contractOwner = payable(newContractOwner);
     }
 
     // Function
@@ -146,8 +159,10 @@ contract Marketplace {
          */
         uint256 contractBalance = address(this).balance;
 
-        require(contractBalance >= amount, "Insufficient funds");
-        payable(msg.sender).transfer(amount);
+        if (contractBalance <= amount) revert InsufficientFunds();
+
+        (bool sent, ) = payable(msg.sender).call{value: amount}("");
+        if (!sent) revert WithdrawalFundsFailed();
     }
 
     // Function
@@ -206,7 +221,7 @@ contract Marketplace {
         //check if course already exist
         Course memory existingCourse = _allCourses[id];
         if (existingCourse.id > 0 && existingCourse.title == descriptionHash)
-            revert CourseAlreadyExist();
+            revert CourseDoesAlreadyExist();
 
         CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
 
@@ -253,6 +268,9 @@ contract Marketplace {
         private
         noReentrant
     {
+        /**
+         * @param uint Amount to transfer (in Wei)
+         */
         uint256 courseOwnwerAmount = amount
             .mul(courseOwner.rewardPercentage)
             .div(100);
@@ -262,16 +280,13 @@ contract Marketplace {
         (bool successTransferCourseOwner, ) = courseOwner._address.call{
             value: courseOwnwerAmount
         }("");
-        require(
-            successTransferCourseOwner,
-            "Transfer funds to course owner failed."
-        );
+        if (!successTransferCourseOwner) revert TransferFundsFailed();
 
         //Tranfer the rest to contract
         (bool successTransferContract, ) = address(this).call{
             value: contractOwnwerAmount
         }("");
-        require(successTransferContract, "Transfer funds to contract failed.");
+        if (!successTransferContract) revert TransferFundsFailed();
     }
 
     // Function
@@ -283,7 +298,7 @@ contract Marketplace {
         payable
         canPurchaseCourse(courseId)
     {
-        require(msg.value > 0, "No Ether were sent.");
+        if (msg.value <= 0) revert InsufficientFunds();
 
         if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
             Course memory course = getCourseFromId(courseId);
@@ -368,7 +383,8 @@ contract Marketplace {
         Course storage course = _allCourses[courseId];
         if (course.id > 0) {
             return course;
-        } else revert("No course found");
+        }
+        revert CourseDoesNotExist();
     }
 
     function getCourseOwnerData(bytes32 courseOwnerId)
@@ -377,7 +393,7 @@ contract Marketplace {
         returns (address _address, uint256 rewardPercentage)
     {
         CourseOwner memory existingOwner = _allCourseOwners[courseOwnerId];
-        if (existingOwner.id == 0) revert CourseOwnerDoNoExist();
+        if (existingOwner.id == 0) revert CourseOwnerDoesNotExist();
         return (existingOwner._address, existingOwner.rewardPercentage);
     }
 }
