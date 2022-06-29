@@ -10,6 +10,7 @@
     "test": "jest --verbose ./tests"
   },
   "dependencies": {
+    "@metamask/detect-provider": "^1.2.0",
     "@openzeppelin/contracts": "^4.6.0",
     "bluebird": "^3.7.2",
     "dotenv": "^16.0.1",

@@ -1,20 +1,26 @@
-import { HeroComponent, BreadCrumbsComponent } from "@components/common"
-import { EthPriceDisplayComponent, WalletBarComponent } from "@components/web3"
-import { CourseListComponent } from "@components/course"
-import { CartComponent } from "@components/order"
-import { BaseLayout } from "@components/layout"
+import { useWeb3 } from "@components/providers";
+import { HeroComponent } from "@components/ui/common";
+import { CourseListComponent } from "@components/ui/course";
+import { BaseLayout } from "@components/ui/layout";
+import { getAllCourses } from "@content/courses/fetcher";
 
-export default function Home() {
+export default function Home({ courses }) {
   return (
     <>
       <HeroComponent />
-      <BreadCrumbsComponent />
-      <WalletBarComponent />
-      <EthPriceDisplayComponent />
-      <CartComponent />
+      {JSON.stringify(courses)}
       <CourseListComponent />
     </>
-  )
+  );
 }
 
-Home.Layout = BaseLayout
+export function getStaticProps() {
+  const data = getAllCourses();
+  return {
+    props: {
+      courses: data,
+    },
+  };
+}
+
+Home.Layout = BaseLayout;
