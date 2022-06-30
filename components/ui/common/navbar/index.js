@@ -1,9 +1,13 @@
-import { useWeb3, Web3Provider } from "@components/providers";
+import { useWeb3Context } from "@components/providers/web3";
 import { LoginComponent } from "@components/ui/login";
 
 export default function Navbar() {
-  const web3Context = useWeb3();
-  console.log(web3Context);
+  const { web3ApiState, connect, getHooks } = useWeb3Context();
+  const { account } = getHooks().useAccount();
+
+  function openPlayStoreToInstallMetamask() {
+    window.open("https://metamask.io/", "_blank");
+  }
 
   return (
     <section>
@@ -38,7 +42,18 @@ export default function Navbar() {
                 Company
               </a>
             </div>
-            <LoginComponent clickAction={() => web3Context.connect()} />
+            {web3ApiState.web3 && !account ? (
+              <LoginComponent clickAction={() => connect()} />
+            ) : web3ApiState.web3 && account ? (
+              <span>{account}</span>
+            ) : (
+              <span
+                onClick={() => openPlayStoreToInstallMetamask()}
+                className="px-8 py-3 border rounded-md text-base font-medium text-white bg-indigo-600 hover:opacity-30"
+              >
+                Install Metamask
+              </span>
+            )}
           </div>
         </nav>
       </div>
