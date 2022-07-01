@@ -1,10 +1,14 @@
-import { useWeb3Context } from "@components/providers/web3";
+import { useWeb3 } from "@components/providers/web3";
 import { LoginComponent } from "@components/ui/login";
+import { useAccount, useNetwork } from "@components/hooks/web3";
+import { toast } from "react-toastify";
 
 export default function Navbar() {
-  const { web3ApiState, connect, getHooks } = useWeb3Context();
-  const { account } = getHooks().useAccount();
+  const { connect, isLoading } = useWeb3();
+  const { account } = useAccount();
+  const { network } = useNetwork();
 
+  console.log(network.network.data == 4);
   function openPlayStoreToInstallMetamask() {
     window.open("https://metamask.io/", "_blank");
   }
@@ -42,10 +46,14 @@ export default function Navbar() {
                 Company
               </a>
             </div>
-            {web3ApiState.web3 && !account ? (
+            {isLoading ? (
+              <span disabled={true} onClick={connect}>
+                Loading...
+              </span>
+            ) : !account.data ? (
               <LoginComponent clickAction={() => connect()} />
-            ) : web3ApiState.web3 && account ? (
-              <span>{account}</span>
+            ) : account.data ? (
+              <span>{account.data}</span>
             ) : (
               <span
                 onClick={() => openPlayStoreToInstallMetamask()}
@@ -54,6 +62,7 @@ export default function Navbar() {
                 Install Metamask
               </span>
             )}
+            ({network.network.data != 4 ? toast.error("Wow so easy !") : null})
           </div>
         </nav>
       </div>
