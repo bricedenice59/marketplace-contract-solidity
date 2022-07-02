@@ -1,6 +1,6 @@
 import { useWeb3 } from "@components/providers/web3";
 import { LoginComponent } from "@components/ui/login";
-import { useWalletInfo } from "@components/hooks/web3";
+import { useNetwork, useWalletInfo } from "@components/hooks/web3";
 import { toast } from "react-toastify";
 
 export default function Navbar() {
@@ -62,7 +62,7 @@ export default function Navbar() {
             )}
             {account.data && <span>{account.data}</span>}
             <div>
-              {account.data && network.data != network.target && (
+              {account.data && !network.isChainAllowed && (
                 <div className="bg-red-400 p-4 rounded-lg">
                   <div>
                     Connected to wrong network, please use Rinkeby testnet
