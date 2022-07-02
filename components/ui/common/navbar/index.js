@@ -1,14 +1,12 @@
 import { useWeb3 } from "@components/providers/web3";
 import { LoginComponent } from "@components/ui/login";
-import { useAccount, useNetwork } from "@components/hooks/web3";
+import { useWalletInfo } from "@components/hooks/web3";
 import { toast } from "react-toastify";
 
 export default function Navbar() {
-  const { connect, isLoading } = useWeb3();
-  const { account } = useAccount();
-  const { network } = useNetwork();
+  const { connect, isLoading, requireInstall } = useWeb3();
+  const { account, network } = useWalletInfo();
 
-  console.log(network.network.data == 4);
   function openPlayStoreToInstallMetamask() {
     window.open("https://metamask.io/", "_blank");
   }
@@ -46,15 +44,12 @@ export default function Navbar() {
                 Company
               </a>
             </div>
-            {isLoading ? (
+            {isLoading && (
               <span disabled={true} onClick={connect}>
                 Loading...
               </span>
-            ) : !account.data ? (
-              <LoginComponent clickAction={() => connect()} />
-            ) : account.data ? (
-              <span>{account.data}</span>
-            ) : (
+            )}
+            {requireInstall && (
               <span
                 onClick={() => openPlayStoreToInstallMetamask()}
                 className="px-8 py-3 border rounded-md text-base font-medium text-white bg-indigo-600 hover:opacity-30"
@@ -62,7 +57,19 @@ export default function Navbar() {
                 Install Metamask
               </span>
             )}
-            ({network.network.data != 4 ? toast.error("Wow so easy !") : null})
+            {!requireInstall && !account.data && (
+              <LoginComponent clickAction={() => connect()} />
+            )}
+            {account.data && <span>{account.data}</span>}
+            <div>
+              {account.data && network.data != network.target && (
+                <div className="bg-red-400 p-4 rounded-lg">
+                  <div>
+                    Connected to wrong network, please use Rinkeby testnet
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </nav>
       </div>

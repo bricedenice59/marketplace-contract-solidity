@@ -9,16 +9,16 @@ export const handler = (web3) => () => {
       if (!chainId) {
         throw new Error("Cannot retreive network. Please refresh the browser.");
       }
+
       return chainId;
     }
   );
 
+  console.log(data);
+
   return {
-    network: {
-      data,
-      target: process.env.TARGET_CHAIN_ID,
-      isSupported: data === process.env.TARGET_CHAIN_ID,
-      ...rest,
-    },
+    data,
+    target: process.env.TARGET_CHAIN_ID,
+    ...rest,
   };
 };
