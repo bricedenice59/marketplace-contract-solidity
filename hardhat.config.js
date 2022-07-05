@@ -11,6 +11,12 @@ const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY;
 
 module.exports = {
   solidity: "0.8.14",
+  settings: {
+    optimizer: {
+      enabled: true,
+      runs: 20,
+    },
+  },
   gasReporter: {
     enabled: true,
     outputFile: "gas-report.txt",

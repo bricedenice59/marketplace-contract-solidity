@@ -15,10 +15,19 @@ contract Marketplace {
 
   address payable private contractOwner;
 
-  enum State {
-    Purchased,
+  enum PurchaseStatus {
+    NotPurchased,
+    Purchased
+  }
+
+  enum CourseAvailabilityEnum {
     Activated,
     Deactivated
+  }
+
+  struct CourseOwnerCoursesStatus {
+    bytes32 id; //course id
+    CourseAvailabilityEnum availability;
   }
 
   struct CourseOwner {
@@ -29,12 +38,15 @@ contract Marketplace {
 
   //That course is gonna be stored on the storage
   struct Course {
-    bytes32 id; // 32
+    bytes32 id;
     bytes32 title;
-    uint256 price; // 32
+    uint256 price;
     CourseOwner owner;
-    State state; // 1
+    PurchaseStatus purchaseStatus;
   }
+
+  mapping(bytes32 => CourseOwnerCoursesStatus)
+    private allCourseOwnerCoursesStatus;
 
   // mapping of courseHash to Course data
   mapping(address => Course[]) private _ownedCourses;
@@ -85,9 +97,17 @@ contract Marketplace {
    * Prevents a course to be puchased if not activated yet
    */
   modifier canPurchaseCourse(bytes32 courseId) {
-    Course memory course = getCourseFromId(courseId);
-    if (course.state == State.Deactivated) {
+    //check the status of the course set by the course owner
+    CourseOwnerCoursesStatus memory courseStatus = allCourseOwnerCoursesStatus[
+      courseId
+    ];
+    if (courseStatus.availability == CourseAvailabilityEnum.Deactivated)
       revert CourseMustBeActivated();
+
+    //finally check for the purchase status
+    Course memory course = getCourseFromId(courseId);
+    if (course.purchaseStatus == PurchaseStatus.Purchased) {
+      revert CourseAlreadyBought();
     }
     _;
   }
@@ -228,34 +248,76 @@ contract Marketplace {
       title: descriptionHash,
       price: price,
       owner: existingOwner,
-      state: State.Activated
+      purchaseStatus: PurchaseStatus.NotPurchased
     });
 
     _allCourses[id] = course;
+
+    //activate the course by default
+    CourseOwnerCoursesStatus
+      memory ownerCourseStatus = CourseOwnerCoursesStatus({
+        id: id,
+        availability: CourseAvailabilityEnum.Activated
+      });
+    allCourseOwnerCoursesStatus[id] = ownerCourseStatus;
   }
 
   // Function
   /**
-   * Activate a course, this is necessary before purchasing it
+   * Activate a course, this may be necessary if it was previously deactivated
    */
   function activateCourse(bytes32 courseId) external onlyContractOwner {
-    Course storage course = getCourseFromId(courseId);
-    if (course.state == State.Activated) {
+    CourseOwnerCoursesStatus
+      storage ownerCourseStatus = allCourseOwnerCoursesStatus[courseId];
+    if (ownerCourseStatus.availability == CourseAvailabilityEnum.Activated) {
       revert CourseIsAlreadyActivated();
     }
-    course.state = State.Activated;
+    ownerCourseStatus.availability = CourseAvailabilityEnum.Activated;
   }
 
   // Function
   /**
    * Deactivate a course, this may be needed if the owner does not want to promote his course anymore
+   * Course cannot be purchased anymore but must remain available for users who purchased it
    */
-  function deactivateCourse(bytes32 courseId) external onlyContractOwner {
-    Course storage course = getCourseFromId(courseId);
-    if (course.state == State.Deactivated) {
+  function deactivateCourse(bytes32 courseId) external {
+    Course storage existingCourse = _allCourses[courseId];
+    if (existingCourse.id == 0) revert CourseDoesNotExist();
+
+    CourseOwner memory existingOwner = _allCourseOwners[
+      existingCourse.owner.id
+    ];
+    if (existingOwner.id == 0) revert CourseOwnerDoesNotExist();
+
+    if (msg.sender != existingOwner._address) {
+      revert OnlyCourseOwner();
+    }
+
+    CourseOwnerCoursesStatus
+      storage ownerCourseStatus = allCourseOwnerCoursesStatus[courseId];
+
+    if (ownerCourseStatus.availability == CourseAvailabilityEnum.Deactivated) {
       revert CourseIsAlreadyDeactivated();
     }
-    course.state = State.Deactivated;
+    ownerCourseStatus.availability = CourseAvailabilityEnum.Deactivated;
+  }
+
+  // Function
+  /**
+   * Retrieves the status of a course (activated or deactivated)
+   */
+  function getCourseStatus(bytes32 courseId)
+    public
+    view
+    returns (CourseAvailabilityEnum status)
+  {
+    Course memory existingCourse = _allCourses[courseId];
+    if (existingCourse.id == 0) revert CourseDoesNotExist();
+
+    CourseOwnerCoursesStatus
+      memory ownerCourseStatus = allCourseOwnerCoursesStatus[courseId];
+
+    return ownerCourseStatus.availability;
   }
 
   // Function
@@ -301,8 +363,8 @@ contract Marketplace {
     if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
       Course memory course = getCourseFromId(courseId);
       course.price = msg.value;
-      course.state = State.Purchased;
-      //get latest update from course owner (cowner may have chnaged his fund's recipient address)
+      course.purchaseStatus = PurchaseStatus.Purchased;
+      //get latest update from course owner (he/she may have changed his fund's recipient address)
       CourseOwner memory courseOwner = _allCourseOwners[course.owner.id];
       course.owner = courseOwner;
       _ownedCourses[msg.sender].push(course);
@@ -328,14 +390,16 @@ contract Marketplace {
    * For a given address and course id, check if a course has already been bought
    */
   function hasCourseAlreadyBeenBought(address _address, bytes32 courseHashId)
-    private
+    public
     view
     returns (bool)
   {
     Course[] memory owned = _ownedCourses[_address];
     for (uint256 i = 0; i < owned.length; i++) {
-      if (owned[i].id == courseHashId && owned[i].state == State.Purchased)
-        return true;
+      if (
+        owned[i].id == courseHashId &&
+        owned[i].purchaseStatus == PurchaseStatus.Purchased
+      ) return true;
     }
     return false;
   }
@@ -353,13 +417,13 @@ contract Marketplace {
 
     Course[] memory owned = _ownedCourses[_address];
     for (uint32 i = 0; i < owned.length; i++) {
-      if (owned[i].state == State.Purchased) resultCount++;
+      if (owned[i].purchaseStatus == PurchaseStatus.Purchased) resultCount++;
     }
 
     bytes32[] memory ids = new bytes32[](resultCount);
     uint256 j;
     for (uint256 i = 0; i < owned.length; i++) {
-      if (owned[i].state == State.Purchased) {
+      if (owned[i].purchaseStatus == PurchaseStatus.Purchased) {
         ids[j] = owned[i].id;
         j++;
       }

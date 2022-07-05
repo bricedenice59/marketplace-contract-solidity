@@ -2,6 +2,7 @@ const Marketplace = artifacts.require("Marketplace");
 const { v4: uuidv4 } = require("uuid");
 const web3Utils = require("../utils/web3Utils");
 const testUtils = require("../utils/testutils/common");
+const { assert } = require("hardhat");
 
 describe("Marketplace contract test", function () {
   var deployedMarketplace;
@@ -84,15 +85,11 @@ describe("Marketplace contract test", function () {
       );
       throw "Operation should have failed";
     } catch (e) {
-      assert.match(
-        e,
-        /VM Exception while processing transaction: revert/,
-        "OnlyCourseOwner()"
-      );
+      assert.match(e, /OnlyCourseOwner/, "OnlyCourseOwner()");
     }
   });
 
-  it("The contract owner cannot publish a course, it should fail", async () => {
+  it("The contract owner cannot publish a course, it should fail with errror OnlyCourseOwner()", async () => {
     var price = testUtils.getRandomNumberBetween(50, 100);
     var title = testUtils.generateRandomString(
       testUtils.getRandomNumberBetween(40, 90)
@@ -107,12 +104,18 @@ describe("Marketplace contract test", function () {
       );
       throw "Operation should have failed";
     } catch (e) {
-      assert.match(
-        e,
-        /VM Exception while processing transaction: revert/,
-        "Only the store front owner can edit the product"
-      );
+      assert.match(e, /OnlyCourseOwner/, "OnlyCourseOwner()");
     }
+  });
+
+  it("Check if the course has already been bought by the buyer account, it should be FALSE", async () => {
+    const hasCourseAlreadyBeenBought =
+      await deployedMarketplace.hasCourseAlreadyBeenBought(
+        buyerAccountAddress,
+        courseId
+      );
+
+    assert.equal(hasCourseAlreadyBeenBought, false);
   });
 
   it("Purchase a course and check if both course owner and contract owner have received the money according the reward percentage previously negotiated", async () => {
@@ -186,6 +189,106 @@ describe("Marketplace contract test", function () {
     );
   });
 
+  it("Try re-purchasing the same course from the same buyer account, it should fail with following error: CourseAlreadyBought()", async () => {
+    const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
+    var ethExchangeRate = 0.0008642427880341;
+    var finalPriceEth = coursePrice.toNumber() * ethExchangeRate;
+    var valueToSend = Web3.utils.toWei(finalPriceEth.toString(), "ether");
+
+    try {
+      var newPurchaseResult = await deployedMarketplace.purchaseCourse(
+        courseId,
+        {
+          from: buyerAccountAddress,
+          value: valueToSend,
+        }
+      );
+      throw "Operation should have failed";
+    } catch (e) {
+      assert.match(e, /CourseAlreadyBought/, "CourseAlreadyBought()");
+    }
+  });
+
+  it("Attempt to deactivate a course by the contract owner account should fail with error OnlyCourseOwner()", async () => {
+    try {
+      var deactivateCourseResult = await deployedMarketplace.deactivateCourse(
+        courseId,
+        {
+          from: contractOwnerAccountAddress,
+        }
+      );
+      throw "Operation should have failed";
+    } catch (e) {
+      assert.match(e, /OnlyCourseOwner/, "OnlyCourseOwner()");
+    }
+  });
+
+  it("Attempt to deactivate a course by the course owner account should be allowed and be successfull", async () => {
+    var deactivateCourseResult = await deployedMarketplace.deactivateCourse(
+      courseId,
+      {
+        from: courseOwnerAccountAddress,
+      }
+    );
+
+    // from contract :
+    // enum CourseAvailabilityEnum {
+    //   Activated, => 0
+    //   Deactivated => 1
+    // }
+
+    var getCourseStatusResult = await deployedMarketplace.getCourseStatus(
+      courseId,
+      {
+        from: courseOwnerAccountAddress,
+      }
+    );
+
+    assert.equal(
+      getCourseStatusResult.toString(),
+      "1",
+      "Expected course status should be: Deactivated"
+    );
+  });
+
+  it("Attempt to deactivate a course that is already deactivated should fail with error CourseIsAlreadyDeactivated()", async () => {
+    try {
+      var deactivateCourseResult = await deployedMarketplace.deactivateCourse(
+        courseId,
+        {
+          from: courseOwnerAccountAddress,
+        }
+      );
+      throw "Operation should have failed";
+    } catch (e) {
+      assert.match(
+        e,
+        /CourseIsAlreadyDeactivated/,
+        "CourseIsAlreadyDeactivated()"
+      );
+    }
+  });
+
+  it("Try purchasing a deactivated course, it should fail with following error: CourseMustBeActivated()", async () => {
+    const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
+    var ethExchangeRate = 0.0008642427880341;
+    var finalPriceEth = coursePrice.toNumber() * ethExchangeRate;
+    var valueToSend = Web3.utils.toWei(finalPriceEth.toString(), "ether");
+
+    try {
+      var newPurchaseResult = await deployedMarketplace.purchaseCourse(
+        courseId,
+        {
+          from: buyerAccountAddress,
+          value: valueToSend,
+        }
+      );
+      throw "Operation should have failed";
+    } catch (e) {
+      assert.match(e, /CourseMustBeActivated/, "CourseMustBeActivated()");
+    }
+  });
+
   it("Only the contract owner can withdraw some or all funds from the marketplace", async () => {
     const fundstoWithdraw = Web3.utils.toWei((0.02).toString(), "ether");
     try {
@@ -195,11 +298,7 @@ describe("Marketplace contract test", function () {
       );
       throw "Operation should have failed";
     } catch (e) {
-      assert.match(
-        e,
-        /VM Exception while processing transaction: revert/,
-        "OnlyContractOwner()"
-      );
+      assert.match(e, /OnlyContractOwner/, "OnlyContractOwner()");
     }
   });
 
@@ -270,11 +369,7 @@ describe("Marketplace contract test", function () {
       );
       throw "Operation should have failed";
     } catch (e) {
-      assert.match(
-        e,
-        /VM Exception while processing transaction: revert/,
-        "OnlyContractOwner()"
-      );
+      assert.match(e, /OnlyContractOwner/, "OnlyContractOwner()");
     }
   });
 });
