@@ -5,6 +5,7 @@
 require("@nomiclabs/hardhat-truffle5");
 require("hardhat-gas-reporter");
 require("dotenv").config();
+require("solidity-coverage");
 
 const COINMARKETCAP_API_KEY = process.env.COINMARKETCAP_API_KEY;
 
