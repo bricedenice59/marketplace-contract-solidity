@@ -287,9 +287,13 @@ describe("Marketplace contract test", function () {
             await deployedMarketplace.provider.getBalance(deployer);
 
         var withdrawResult = await deployedMarketplace.withdrawMarketplaceFunds(
-            fundstoWithdraw,
-            { from: deployer }
+            fundstoWithdraw
         );
+
+        //calculate gas cost from transaction
+        const transactionReceipt = await withdrawResult.wait(1);
+        const { gasUsed, effectiveGasPrice } = transactionReceipt;
+        const gasCost = gasUsed.mul(effectiveGasPrice);
 
         const contractAfterWithdrawBalance =
             await deployedMarketplace.provider.getBalance(
@@ -299,24 +303,22 @@ describe("Marketplace contract test", function () {
             await deployedMarketplace.provider.getBalance(deployer);
 
         const expectedContractAfterWithdrawBalance =
-            BigInt(contractBeforeWithdrawBalance) - BigInt(fundstoWithdraw);
+            contractBeforeWithdrawBalance.sub(fundstoWithdraw);
         const expectedContractOwnerAfterWithdrawBalance =
-            BigInt(contractOwnerBeforeWithdrawBalance) +
-            BigInt(fundstoWithdraw);
+            contractOwnerBeforeWithdrawBalance.add(fundstoWithdraw);
 
-        assert.equal(
-            parseFloat(contractAfterWithdrawBalance),
-            parseFloat(expectedContractAfterWithdrawBalance),
-            `The expected contract balance after withdrawal should be: ${parseFloat(
+        assert(
+            contractAfterWithdrawBalance.eq(
                 expectedContractAfterWithdrawBalance
-            )}`
+            ),
+            `The expected contract balance after withdrawal should be: ${expectedContractAfterWithdrawBalance}`
         );
-        assert.isAtMost(
-            parseFloat(contractOwnerAfterWithdrawBalance),
-            parseFloat(expectedContractOwnerAfterWithdrawBalance),
-            `The expected contract owner balance after withdrawal should be: ${parseFloat(
-                expectedContractOwnerAfterWithdrawBalance
-            )}`
+
+        assert(
+            contractOwnerAfterWithdrawBalance
+                .add(gasCost)
+                .eq(expectedContractOwnerAfterWithdrawBalance),
+            `The expected contract balance after withdrawal should be: ${expectedContractOwnerAfterWithdrawBalance}`
         );
     });
 
