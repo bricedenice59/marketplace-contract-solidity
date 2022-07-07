@@ -1,4 +1,4 @@
-module.exports = async (web3, priceFeedAddress) => {
+module.exports = async (ethers, priceFeedAddress) => {
   const aggregatorV3InterfaceABI = [
     {
       inputs: [],

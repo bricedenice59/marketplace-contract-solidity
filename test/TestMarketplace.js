@@ -1,37 +1,34 @@
-const Marketplace = artifacts.require("Marketplace");
 const { v4: uuidv4 } = require("uuid");
-const web3Utils = require("../utils/web3Utils");
 const testUtils = require("../utils/testutils/common");
-const { solidity } = require("ethereum-waffle");
-const chai = require("chai");
-chai.use(solidity);
+const { assert, expect } = require("chai");
+const { deployments, ethers, getNamedAccounts } = require("hardhat");
+const { utils, BigNumber } = require("ethers");
 
 describe("Marketplace contract test", function () {
     var deployedMarketplace;
-    var contractOwnerAccountAddress;
-    var courseOwnerAccountAddress;
-    var buyerAccountAddress;
-    var newcontractOwnerAccountAddress;
+    var deployer;
+    var courseOwnerAccount;
+    var buyerAccount;
+    var newcontractOwnerAccount;
 
     var courseOwnerId;
     var courseId;
 
     before(async function () {
-        deployedMarketplace = await Marketplace.new();
-        const accounts = await web3.eth.getAccounts();
+        deployer = (await getNamedAccounts()).deployer;
+        await deployments.fixture();
+        deployedMarketplace = await ethers.getContract("Marketplace", deployer);
 
-        contractOwnerAccountAddress = accounts[0];
-        courseOwnerAccountAddress = accounts[1];
-        buyerAccountAddress = accounts[2];
-        newcontractOwnerAccountAddress = accounts[3];
+        const accounts = await ethers.getSigners();
+        courseOwnerAccount = accounts[1];
+        buyerAccount = accounts[2];
+        newcontractOwnerAccount = accounts[3];
 
         //generate a new course owner ID
-        courseOwnerId = web3Utils.getKeccak256HexValueFromInput(
-            courseOwnerAccountAddress
-        );
+        courseOwnerId = utils.keccak256(courseOwnerAccount.address);
 
         //generate a new course ID
-        courseId = web3Utils.getKeccak256HexValueFromInput(uuidv4());
+        courseId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
     });
 
     it("Add a new course owner and retrieves his address", async () => {
@@ -39,9 +36,8 @@ describe("Marketplace contract test", function () {
 
         await deployedMarketplace.addCourseOwner(
             courseOwnerId,
-            courseOwnerAccountAddress,
-            rewardPercentage,
-            { from: contractOwnerAccountAddress }
+            courseOwnerAccount.address,
+            rewardPercentage
         );
 
         const courseOwner = await deployedMarketplace.getCourseOwnerData(
@@ -49,8 +45,8 @@ describe("Marketplace contract test", function () {
         );
         assert.equal(
             courseOwner[0],
-            courseOwnerAccountAddress,
-            `The course owner should be: ${courseOwnerAccountAddress}`
+            courseOwnerAccount.address,
+            `The course owner should be: ${courseOwnerAccount.address}`
         );
     });
 
@@ -59,13 +55,15 @@ describe("Marketplace contract test", function () {
         var title = testUtils.generateRandomString(
             testUtils.getRandomNumberBetween(30, 70)
         );
+        const courseOwnerConnectedContract = await deployedMarketplace.connect(
+            courseOwnerAccount
+        );
 
-        await deployedMarketplace.addCourse(
+        await courseOwnerConnectedContract.addCourse(
             courseId,
             title,
             price,
-            courseOwnerId,
-            { from: courseOwnerAccountAddress }
+            courseOwnerId
         );
 
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
@@ -74,15 +72,18 @@ describe("Marketplace contract test", function () {
             price,
             `The course should have a price of: ${price}`
         );
+
+        const buyerConnectedContract = await deployedMarketplace.connect(
+            buyerAccount
+        );
         await expect(
-            deployedMarketplace.addCourse(
-                web3Utils.getKeccak256HexValueFromInput(uuidv4()),
+            buyerConnectedContract.addCourse(
+                utils.keccak256(utils.toUtf8Bytes(uuidv4().toString())),
                 testUtils.generateRandomString(
                     testUtils.getRandomNumberBetween(40, 90)
                 ),
                 testUtils.getRandomNumberBetween(50, 100),
-                courseOwnerId,
-                { from: buyerAccountAddress }
+                courseOwnerId
             )
         ).to.be.revertedWith("Marketplace__OnlyCourseOwner");
     });
@@ -95,11 +96,11 @@ describe("Marketplace contract test", function () {
 
         await expect(
             deployedMarketplace.addCourse(
-                web3Utils.getKeccak256HexValueFromInput(uuidv4()),
+                utils.keccak256(utils.toUtf8Bytes(uuidv4().toString())),
                 title,
                 price,
                 courseOwnerId,
-                { from: contractOwnerAccountAddress }
+                { from: deployer }
             )
         ).to.be.revertedWith("Marketplace__OnlyCourseOwner");
     });
@@ -107,7 +108,7 @@ describe("Marketplace contract test", function () {
     it("Check if the course has already been bought by the buyer account, it should be FALSE", async () => {
         const hasCourseAlreadyBeenBought =
             await deployedMarketplace.hasCourseAlreadyBeenBought(
-                buyerAccountAddress,
+                buyerAccount.address,
                 courseId
             );
 
@@ -126,35 +127,37 @@ describe("Marketplace contract test", function () {
         //calculation of funds to send
         var ethExchangeRate = 0.0008642427880341;
         var finalPriceEth = coursePrice.toNumber() * ethExchangeRate;
-        var valueToSend = Web3.utils.toWei(finalPriceEth.toString(), "ether");
+        var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
 
         //split funds calculation
-        const fundsValuetoBeSentToCourseOwner =
-            (valueToSend * courseOwnerRewardPercentage.toNumber()) / 100;
+        const fundsValuetoBeSentToCourseOwner = valueToSend
+            .mul(courseOwnerRewardPercentage)
+            .div(100);
+
         const contractPercentage = 100 - courseOwnerRewardPercentage.toNumber();
-        const fundsValuetoBeSentToContract =
-            (valueToSend * contractPercentage) / 100;
+        const fundsValuetoBeSentToContract = valueToSend
+            .mul(contractPercentage)
+            .div(100);
 
-        const courseOwnerBeforePurchaseBalance = await web3.eth.getBalance(
-            courseOwnerDataAddr
-        );
-        const contractBeforePurchaseBalance = await web3.eth.getBalance(
-            deployedMarketplace.address
-        );
+        const courseOwnerBeforePurchaseBalance =
+            await deployedMarketplace.provider.getBalance(courseOwnerDataAddr);
+        const contractBeforePurchaseBalance =
+            await deployedMarketplace.provider.getBalance(
+                deployedMarketplace.address
+            );
 
-        //purchase course
-        var newCourseResult = await deployedMarketplace.purchaseCourse(
-            courseId,
-            {
-                from: buyerAccountAddress,
-                value: valueToSend,
-            }
+        const buyerConnectedContract = await deployedMarketplace.connect(
+            buyerAccount
         );
+        //purchase course with a new connected buyer account
+        await buyerConnectedContract.purchaseCourse(courseId, {
+            value: valueToSend,
+        });
 
         //retrieve the course just purchased
         const coursePurchased =
-            await deployedMarketplace.getUserBoughtCoursesIds(
-                buyerAccountAddress
+            await buyerConnectedContract.getUserBoughtCoursesIds(
+                buyerAccount.address
             );
         assert.equal(
             coursePurchased[0],
@@ -164,29 +167,28 @@ describe("Marketplace contract test", function () {
 
         //compare before/after balances
         const courseOwnerAfterBalance =
-            BigInt(await web3.eth.getBalance(courseOwnerDataAddr)) / 100000n;
+            await deployedMarketplace.provider.getBalance(courseOwnerDataAddr);
         const contractAfterBalance =
-            BigInt(await web3.eth.getBalance(deployedMarketplace.address)) /
-            100000n;
+            await deployedMarketplace.provider.getBalance(
+                deployedMarketplace.address
+            );
 
-        const expectedContractAfterBalance =
-            (BigInt(contractBeforePurchaseBalance) +
-                BigInt(fundsValuetoBeSentToContract)) /
-            100000n;
+        const expectedContractAfterBalance = contractBeforePurchaseBalance.add(
+            fundsValuetoBeSentToContract
+        );
+
         const expectedCourseOwnerAfterBalance =
-            (BigInt(courseOwnerBeforePurchaseBalance) +
-                BigInt(fundsValuetoBeSentToCourseOwner)) /
-            100000n;
+            courseOwnerBeforePurchaseBalance.add(
+                fundsValuetoBeSentToCourseOwner
+            );
 
-        assert.equal(
-            parseFloat(courseOwnerAfterBalance),
-            parseFloat(expectedCourseOwnerAfterBalance),
+        assert(
+            courseOwnerAfterBalance.eq(expectedCourseOwnerAfterBalance),
             `${courseOwnerRewardPercentage}% of the sale should be credited to the course owner`
         );
-        assert.equal(
-            parseFloat(contractAfterBalance),
-            parseFloat(expectedContractAfterBalance),
-            `${contractPercentage}% of the sale should be credited to the marketplace.`
+        assert(
+            contractAfterBalance.eq(expectedContractAfterBalance),
+            `${contractPercentage}% of the sale should be credited to the course owner`
         );
     });
 
@@ -194,10 +196,14 @@ describe("Marketplace contract test", function () {
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
         var ethExchangeRate = 0.0008642427880341;
         var finalPriceEth = coursePrice.toNumber() * ethExchangeRate;
-        var valueToSend = Web3.utils.toWei(finalPriceEth.toString(), "ether");
+        var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
+
+        const buyerConnectedContract = await deployedMarketplace.connect(
+            buyerAccount
+        );
+
         await expect(
-            deployedMarketplace.purchaseCourse(courseId, {
-                from: buyerAccountAddress,
+            buyerConnectedContract.purchaseCourse(courseId, {
                 value: valueToSend,
             })
         ).to.be.revertedWith("Marketplace__CourseAlreadyBought");
@@ -205,19 +211,15 @@ describe("Marketplace contract test", function () {
 
     it("Attempt to deactivate a course by the contract owner account should fail with error OnlyCourseOwner()", async () => {
         await expect(
-            deployedMarketplace.deactivateCourse(courseId, {
-                from: contractOwnerAccountAddress,
-            })
+            deployedMarketplace.deactivateCourse(courseId)
         ).to.be.revertedWith("Marketplace__OnlyCourseOwner");
     });
 
     it("Attempt to deactivate a course by the course owner account should be allowed and be successfull", async () => {
-        var deactivateCourseResult = await deployedMarketplace.deactivateCourse(
-            courseId,
-            {
-                from: courseOwnerAccountAddress,
-            }
+        const courseOwnerConnectedContract = await deployedMarketplace.connect(
+            courseOwnerAccount
         );
+        await courseOwnerConnectedContract.deactivateCourse(courseId);
 
         // from contract :
         // enum CourseAvailabilityEnum {
@@ -225,12 +227,8 @@ describe("Marketplace contract test", function () {
         //   Deactivated => 1
         // }
 
-        var getCourseStatusResult = await deployedMarketplace.getCourseStatus(
-            courseId,
-            {
-                from: courseOwnerAccountAddress,
-            }
-        );
+        var getCourseStatusResult =
+            await courseOwnerConnectedContract.getCourseStatus(courseId);
 
         assert.equal(
             getCourseStatusResult.toString(),
@@ -240,56 +238,65 @@ describe("Marketplace contract test", function () {
     });
 
     it("Attempt to deactivate a course that is already deactivated should fail with error CourseIsAlreadyDeactivated()", async () => {
+        const courseOwnerConnectedContract = await deployedMarketplace.connect(
+            courseOwnerAccount
+        );
         await expect(
-            deployedMarketplace.deactivateCourse(courseId, {
-                from: courseOwnerAccountAddress,
-            })
+            courseOwnerConnectedContract.deactivateCourse(courseId)
         ).to.be.revertedWith("Marketplace__CourseIsAlreadyDeactivated");
     });
 
     it("Try purchasing a deactivated course, it should fail with following error: CourseMustBeActivated()", async () => {
+        const buyerConnectedContract = await deployedMarketplace.connect(
+            buyerAccount
+        );
+
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
         var ethExchangeRate = 0.0008642427880341;
         var finalPriceEth = coursePrice.toNumber() * ethExchangeRate;
-        var valueToSend = Web3.utils.toWei(finalPriceEth.toString(), "ether");
+        var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
 
         await expect(
-            deployedMarketplace.purchaseCourse(courseId, {
-                from: buyerAccountAddress,
+            buyerConnectedContract.purchaseCourse(courseId, {
                 value: valueToSend,
             })
         ).to.be.revertedWith("Marketplace__CourseMustBeActivated");
     });
 
     it("Only the contract owner can withdraw some or all funds from the marketplace", async () => {
-        const fundstoWithdraw = Web3.utils.toWei((0.02).toString(), "ether");
+        const fundstoWithdraw = ethers.utils.parseEther("0.02");
+
+        const courseOwnerConnectedContract = await deployedMarketplace.connect(
+            courseOwnerAccount
+        );
+
         await expect(
-            deployedMarketplace.withdrawMarketplaceFunds(fundstoWithdraw, {
-                from: courseOwnerAccountAddress,
-            })
+            courseOwnerConnectedContract.withdrawMarketplaceFunds(
+                fundstoWithdraw
+            )
         ).to.be.revertedWith("Marketplace__OnlyContractOwner");
     });
 
     it("Withdraw some of the marketplace funds", async () => {
-        const fundstoWithdraw = Web3.utils.toWei((0.02).toString(), "ether");
-        const contractBeforeWithdrawBalance = await web3.eth.getBalance(
-            deployedMarketplace.address
-        );
-        const contractOwnerBeforeWithdrawBalance = await web3.eth.getBalance(
-            contractOwnerAccountAddress
-        );
+        const fundstoWithdraw = ethers.utils.parseEther("0.02");
+        const contractBeforeWithdrawBalance =
+            await deployedMarketplace.provider.getBalance(
+                deployedMarketplace.address
+            );
+        const contractOwnerBeforeWithdrawBalance =
+            await deployedMarketplace.provider.getBalance(deployer);
 
         var withdrawResult = await deployedMarketplace.withdrawMarketplaceFunds(
             fundstoWithdraw,
-            { from: contractOwnerAccountAddress }
+            { from: deployer }
         );
 
-        const contractAfterWithdrawBalance = await web3.eth.getBalance(
-            deployedMarketplace.address
-        );
-        const contractOwnerAfterWithdrawBalance = await web3.eth.getBalance(
-            contractOwnerAccountAddress
-        );
+        const contractAfterWithdrawBalance =
+            await deployedMarketplace.provider.getBalance(
+                deployedMarketplace.address
+            );
+        const contractOwnerAfterWithdrawBalance =
+            await deployedMarketplace.provider.getBalance(deployer);
 
         const expectedContractAfterWithdrawBalance =
             BigInt(contractBeforeWithdrawBalance) - BigInt(fundstoWithdraw);
@@ -314,28 +321,24 @@ describe("Marketplace contract test", function () {
     });
 
     it("Transfer marketplace ownership", async () => {
-        var transferOwnershipResult =
-            await deployedMarketplace.transferOwnership(
-                newcontractOwnerAccountAddress,
-                { from: contractOwnerAccountAddress }
-            );
+        await deployedMarketplace.transferOwnership(
+            newcontractOwnerAccount.address
+        );
 
         var expectedNewContractOwner =
             await deployedMarketplace.getContractOwner();
 
         assert.equal(
-            newcontractOwnerAccountAddress,
+            newcontractOwnerAccount.address,
             expectedNewContractOwner,
             `The expected contract owner should be: ${expectedNewContractOwner}`
         );
     });
 
     it("Try withdraw some of the marketplace funds with the old contract owner address; it should fail with error OnlyContractOwner()", async () => {
-        const fundstoWithdraw = Web3.utils.toWei((0.001).toString(), "ether");
+        const fundstoWithdraw = ethers.utils.parseEther("0.001");
         await expect(
-            deployedMarketplace.withdrawMarketplaceFunds(fundstoWithdraw, {
-                from: contractOwnerAccountAddress,
-            })
+            deployedMarketplace.withdrawMarketplaceFunds(fundstoWithdraw)
         ).to.be.revertedWith("Marketplace__OnlyContractOwner");
     });
 });
