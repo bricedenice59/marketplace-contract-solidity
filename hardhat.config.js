@@ -6,6 +6,8 @@ require("hardhat-gas-reporter");
 require("solidity-coverage");
 require("hardhat-deploy");
 
+dotenvExpand.expand(config);
+
 const PRIVATE_KEY = process.env.CONTRACT_DEPLOYER_PRIVATE_KEY;
 const RINKEBY_RPC_URL = process.env.RINKEBY_RPC_URL;
 const REPORT_GAS = process.env.REPORT_GAS;
