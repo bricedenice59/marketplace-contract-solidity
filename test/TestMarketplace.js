@@ -52,8 +52,12 @@ describe("Marketplace contract test", function () {
 
     it("Only the course owner can add HIS own new courses to the contract, it shoud fail if different", async () => {
         var price = testUtils.getRandomNumberBetween(2500, 4000);
-        var title = testUtils.generateRandomString(
-            testUtils.getRandomNumberBetween(30, 70)
+        var title = utils.keccak256(
+            utils.toUtf8Bytes(
+                testUtils.generateRandomString(
+                    testUtils.getRandomNumberBetween(30, 70)
+                )
+            )
         );
         const courseOwnerConnectedContract = await deployedMarketplace.connect(
             courseOwnerAccount
@@ -79,8 +83,12 @@ describe("Marketplace contract test", function () {
         await expect(
             buyerConnectedContract.addCourse(
                 utils.keccak256(utils.toUtf8Bytes(uuidv4().toString())),
-                testUtils.generateRandomString(
-                    testUtils.getRandomNumberBetween(40, 90)
+                utils.keccak256(
+                    utils.toUtf8Bytes(
+                        testUtils.generateRandomString(
+                            testUtils.getRandomNumberBetween(40, 90)
+                        )
+                    )
                 ),
                 testUtils.getRandomNumberBetween(50, 100),
                 courseOwnerId
@@ -90,8 +98,12 @@ describe("Marketplace contract test", function () {
 
     it("The contract owner cannot publish a course, it should fail with errror OnlyCourseOwner()", async () => {
         var price = testUtils.getRandomNumberBetween(50, 100);
-        var title = testUtils.generateRandomString(
-            testUtils.getRandomNumberBetween(40, 90)
+        var title = utils.keccak256(
+            utils.toUtf8Bytes(
+                testUtils.generateRandomString(
+                    testUtils.getRandomNumberBetween(40, 90)
+                )
+            )
         );
 
         await expect(

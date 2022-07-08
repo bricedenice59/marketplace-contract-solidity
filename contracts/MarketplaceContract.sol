@@ -15,9 +15,6 @@ contract Marketplace {
     // Library usage
     using SafeMath for uint256;
 
-    // boolean to prevent reentrancy
-    bool locked = false;
-
     address payable private contractOwner;
 
     receive() external payable {}
@@ -88,17 +85,6 @@ contract Marketplace {
 
     // Modifier
     /**
-     * Prevents reentrancy
-     */
-    modifier noReentrant() {
-        require(!locked, "No re-entrancy");
-        locked = true;
-        _;
-        locked = false;
-    }
-
-    // Modifier
-    /**
      * Prevents a course to be puchased if not activated yet
      */
     modifier canPurchaseCourse(bytes32 courseId) {
@@ -112,22 +98,6 @@ contract Marketplace {
         Course memory course = getCourseFromId(courseId);
         if (course.purchaseStatus == PurchaseStatus.Purchased) {
             revert Marketplace__CourseAlreadyBought();
-        }
-        _;
-    }
-
-    // Modifier
-    /**
-     * Prevents contract interaction with someone else who is not the course owner
-     */
-    modifier onlyCourseOwner(bytes32 courseOwnerId) {
-        //check if course owner exists, if not reject course creation
-        CourseOwner memory existingOwner = allCourseOwners[courseOwnerId];
-        if (existingOwner.id == 0)
-            revert Marketplace__CourseOwnerDoesNotExist();
-
-        if (msg.sender != existingOwner._address) {
-            revert Marketplace__OnlyCourseOwner();
         }
         _;
     }
@@ -174,11 +144,7 @@ contract Marketplace {
     /**
      * Allows contract owner to withdraw some or all of the funds earned from purchases.
      */
-    function withdrawMarketplaceFunds(uint256 amount)
-        public
-        onlyContractOwner
-        noReentrant
-    {
+    function withdrawMarketplaceFunds(uint256 amount) public onlyContractOwner {
         /**
          * @param uint Amount to withdraw (in Wei)
          */
@@ -237,22 +203,25 @@ contract Marketplace {
      */
     function addCourse(
         bytes32 id,
-        string memory title,
+        bytes32 title,
         uint32 price,
         bytes32 courseOwnerId
-    ) external onlyCourseOwner(courseOwnerId) {
-        bytes32 descriptionHash = keccak256(abi.encodePacked(id, title, price));
+    ) external {
+        CourseOwner memory existingOwner = allCourseOwners[courseOwnerId];
+        if (existingOwner.id == 0)
+            revert Marketplace__CourseOwnerDoesNotExist();
+
+        if (msg.sender != existingOwner._address) {
+            revert Marketplace__OnlyCourseOwner();
+        }
 
         //check if course already exist
         Course memory existingCourse = allCourses[id];
-        if (existingCourse.id > 0 && existingCourse.title == descriptionHash)
-            revert Marketplace__CourseDoesAlreadyExist();
-
-        CourseOwner memory existingOwner = allCourseOwners[courseOwnerId];
+        if (existingCourse.id > 0) revert Marketplace__CourseDoesAlreadyExist();
 
         Course memory course = Course({
             id: id,
-            title: descriptionHash,
+            title: title,
             price: price,
             owner: existingOwner,
             purchaseStatus: PurchaseStatus.NotPurchased
@@ -290,9 +259,7 @@ contract Marketplace {
      * Course cannot be purchased anymore but must remain available for users who purchased it
      */
     function deactivateCourse(bytes32 courseId) external {
-        Course storage existingCourse = allCourses[courseId];
-        if (existingCourse.id == 0) revert Marketplace__CourseDoesNotExist();
-
+        Course memory existingCourse = getCourseFromId(courseId);
         CourseOwner memory existingOwner = allCourseOwners[
             existingCourse.owner.id
         ];
@@ -323,11 +290,10 @@ contract Marketplace {
         view
         returns (CourseAvailabilityEnum status)
     {
-        Course memory existingCourse = allCourses[courseId];
-        if (existingCourse.id == 0) revert Marketplace__CourseDoesNotExist();
+        Course memory course = getCourseFromId(courseId);
 
         CourseOwnerCoursesStatus
-            memory ownerCourseStatus = allCourseOwnerCoursesStatus[courseId];
+            memory ownerCourseStatus = allCourseOwnerCoursesStatus[course.id];
 
         return ownerCourseStatus.availability;
     }
@@ -338,7 +304,6 @@ contract Marketplace {
      */
     function splitAmount(CourseOwner memory courseOwner, uint256 amount)
         private
-        noReentrant
     {
         /**
          * @param uint Amount to transfer (in Wei)
@@ -371,7 +336,7 @@ contract Marketplace {
         payable
         canPurchaseCourse(courseId)
     {
-        if (msg.value <= 0) revert Marketplace__InsufficientFunds();
+        if (msg.value < 1) revert Marketplace__InsufficientFunds();
 
         if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
             Course memory course = getCourseFromId(courseId);
@@ -394,8 +359,7 @@ contract Marketplace {
         view
         returns (uint256 price)
     {
-        Course memory course = getCourseFromId(courseId);
-        return course.price;
+        return getCourseFromId(courseId).price;
     }
 
     // Function
@@ -453,9 +417,9 @@ contract Marketplace {
     function getCourseFromId(bytes32 courseId)
         private
         view
-        returns (Course storage)
+        returns (Course memory)
     {
-        Course storage course = allCourses[courseId];
+        Course memory course = allCourses[courseId];
         if (course.id > 0) {
             return course;
         }
