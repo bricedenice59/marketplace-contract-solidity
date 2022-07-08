@@ -2,7 +2,7 @@ const { v4: uuidv4 } = require("uuid");
 const testUtils = require("../utils/testutils/common");
 const { assert, expect } = require("chai");
 const { deployments, ethers, getNamedAccounts } = require("hardhat");
-const { utils, BigNumber } = require("ethers");
+const { utils } = require("ethers");
 
 describe("Marketplace contract test", function () {
     var deployedMarketplace;
@@ -16,6 +16,7 @@ describe("Marketplace contract test", function () {
 
     before(async function () {
         deployer = (await getNamedAccounts()).deployer;
+
         await deployments.fixture();
         deployedMarketplace = await ethers.getContract("Marketplace", deployer);
 
@@ -23,6 +24,13 @@ describe("Marketplace contract test", function () {
         courseOwnerAccount = accounts[1];
         buyerAccount = accounts[2];
         newcontractOwnerAccount = accounts[3];
+
+        console.log(`Deployer address: ${deployer}`);
+        console.log(`CourseOwner address: ${courseOwnerAccount.address}`);
+        console.log(`Buyer address: ${buyerAccount.address}`);
+        console.log(
+            `NewContractOwner after ownership changes: ${newcontractOwnerAccount.address}`
+        );
 
         //generate a new course owner ID
         courseOwnerId = utils.keccak256(courseOwnerAccount.address);
@@ -59,16 +67,10 @@ describe("Marketplace contract test", function () {
                 )
             )
         );
-        const courseOwnerConnectedContract = await deployedMarketplace.connect(
-            courseOwnerAccount
-        );
 
-        await courseOwnerConnectedContract.addCourse(
-            courseId,
-            title,
-            price,
-            courseOwnerId
-        );
+        await deployedMarketplace
+            .connect(courseOwnerAccount)
+            .addCourse(courseId, title, price, courseOwnerId);
 
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
         assert.equal(
@@ -77,22 +79,22 @@ describe("Marketplace contract test", function () {
             `The course should have a price of: ${price}`
         );
 
-        const buyerConnectedContract = await deployedMarketplace.connect(
-            buyerAccount
+        var newCourseId = utils.keccak256(
+            utils.toUtf8Bytes(uuidv4().toString())
         );
-        await expect(
-            buyerConnectedContract.addCourse(
-                utils.keccak256(utils.toUtf8Bytes(uuidv4().toString())),
-                utils.keccak256(
-                    utils.toUtf8Bytes(
-                        testUtils.generateRandomString(
-                            testUtils.getRandomNumberBetween(40, 90)
-                        )
-                    )
-                ),
-                testUtils.getRandomNumberBetween(50, 100),
-                courseOwnerId
+        var price = testUtils.getRandomNumberBetween(2500, 4000);
+        var title = utils.keccak256(
+            utils.toUtf8Bytes(
+                testUtils.generateRandomString(
+                    testUtils.getRandomNumberBetween(30, 70)
+                )
             )
+        );
+
+        await expect(
+            deployedMarketplace
+                .connect(buyerAccount)
+                .addCourse(newCourseId, title, price, courseOwnerId)
         ).to.be.revertedWith("Marketplace__OnlyCourseOwner");
     });
 
@@ -158,19 +160,17 @@ describe("Marketplace contract test", function () {
                 deployedMarketplace.address
             );
 
-        const buyerConnectedContract = await deployedMarketplace.connect(
-            buyerAccount
-        );
         //purchase course with a new connected buyer account
-        await buyerConnectedContract.purchaseCourse(courseId, {
-            value: valueToSend,
-        });
+        await deployedMarketplace
+            .connect(buyerAccount)
+            .purchaseCourse(courseId, {
+                value: valueToSend,
+            });
 
         //retrieve the course just purchased
-        const coursePurchased =
-            await buyerConnectedContract.getUserBoughtCoursesIds(
-                buyerAccount.address
-            );
+        const coursePurchased = await deployedMarketplace
+            .connect(buyerAccount)
+            .getUserBoughtCoursesIds(buyerAccount.address);
         assert.equal(
             coursePurchased[0],
             courseId,
@@ -210,12 +210,8 @@ describe("Marketplace contract test", function () {
         var finalPriceEth = coursePrice.toNumber() * ethExchangeRate;
         var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
 
-        const buyerConnectedContract = await deployedMarketplace.connect(
-            buyerAccount
-        );
-
         await expect(
-            buyerConnectedContract.purchaseCourse(courseId, {
+            deployedMarketplace.connect(buyerAccount).purchaseCourse(courseId, {
                 value: valueToSend,
             })
         ).to.be.revertedWith("Marketplace__CourseAlreadyBought");
@@ -228,10 +224,9 @@ describe("Marketplace contract test", function () {
     });
 
     it("Attempt to deactivate a course by the course owner account should be allowed and be successfull", async () => {
-        const courseOwnerConnectedContract = await deployedMarketplace.connect(
-            courseOwnerAccount
-        );
-        await courseOwnerConnectedContract.deactivateCourse(courseId);
+        await deployedMarketplace
+            .connect(courseOwnerAccount)
+            .deactivateCourse(courseId);
 
         // from contract :
         // enum CourseAvailabilityEnum {
@@ -239,8 +234,9 @@ describe("Marketplace contract test", function () {
         //   Deactivated => 1
         // }
 
-        var getCourseStatusResult =
-            await courseOwnerConnectedContract.getCourseStatus(courseId);
+        var getCourseStatusResult = await deployedMarketplace
+            .connect(courseOwnerAccount)
+            .getCourseStatus(courseId);
 
         assert.equal(
             getCourseStatusResult.toString(),
@@ -250,42 +246,35 @@ describe("Marketplace contract test", function () {
     });
 
     it("Attempt to deactivate a course that is already deactivated should fail with error CourseIsAlreadyDeactivated()", async () => {
-        const courseOwnerConnectedContract = await deployedMarketplace.connect(
-            courseOwnerAccount
-        );
         await expect(
-            courseOwnerConnectedContract.deactivateCourse(courseId)
+            deployedMarketplace
+                .connect(courseOwnerAccount)
+                .deactivateCourse(courseId)
         ).to.be.revertedWith("Marketplace__CourseIsAlreadyDeactivated");
     });
 
     it("Try purchasing a deactivated course, it should fail with following error: CourseMustBeActivated()", async () => {
-        const buyerConnectedContract = await deployedMarketplace.connect(
-            buyerAccount
-        );
-
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
         var ethExchangeRate = 0.0008642427880341;
         var finalPriceEth = coursePrice.toNumber() * ethExchangeRate;
         var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
 
         await expect(
-            buyerConnectedContract.purchaseCourse(courseId, {
-                value: valueToSend,
-            })
+            deployedMarketplace
+                .connect(courseOwnerAccount)
+                .purchaseCourse(courseId, {
+                    value: valueToSend,
+                })
         ).to.be.revertedWith("Marketplace__CourseMustBeActivated");
     });
 
     it("Only the contract owner can withdraw some or all funds from the marketplace", async () => {
         const fundstoWithdraw = ethers.utils.parseEther("0.02");
 
-        const courseOwnerConnectedContract = await deployedMarketplace.connect(
-            courseOwnerAccount
-        );
-
         await expect(
-            courseOwnerConnectedContract.withdrawMarketplaceFunds(
-                fundstoWithdraw
-            )
+            deployedMarketplace
+                .connect(courseOwnerAccount)
+                .withdrawMarketplaceFunds(fundstoWithdraw)
         ).to.be.revertedWith("Marketplace__OnlyContractOwner");
     });
 
