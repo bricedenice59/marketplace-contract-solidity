@@ -2,14 +2,12 @@
 pragma solidity >=0.8.14;
 
 // SafeMath
-// The following version of SafeMath is used because this contract uses Solidity 0.8 or later (i.e. the compiler has built in overflow checks).
-// https://github.com/OpenZeppelin/openzeppelin-contracts/blob/master/contracts/utils/math/SafeMath.sol
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 /** @title A marketplace contract
  *  @author Brice Grenard
- *  @notice This contract is a demo of a simple marketplace where programming courses can be promoted and sold from a course owner perspective
- *  @dev The price feed has been developped outside this contract(backend part) but could obviously been added in here using Chainlink
+ *  @notice This contract is a demo of a simple marketplace where programming courses can be promoted and sold
+ *  @dev The price feed has been developped outside this contract but could obviously been added in here using Chainlink
  */
 contract Marketplace {
     // Library usage
@@ -160,8 +158,6 @@ contract Marketplace {
     /**
      * Change course's owner recipient address
      */
-    //A bad actor could change course's owner recipient address to redirect funds from course purchases, hence the modifier requirement that allows only the contract owner to do it.
-    //ideally, if taking full responsabilities over his account, the course owner is able change his recipient address without requiring contract owner assistance.
     function changeCourseOwnerAddress(bytes32 courseOwnerId, address newAddress)
         external
         onlyContractOwner
@@ -300,7 +296,9 @@ contract Marketplace {
 
     // Function
     /**
-     * Split purchase as following : The course owner is funded with a negotiated reward % of the course price, the rest left goes to the marketplace contract
+     * Split purchase as following : 
+     1. The course owner is funded with a negotiated reward % of the course price
+     2. The rest left goes to the marketplace contract
      */
     function splitAmount(CourseOwner memory courseOwner, uint256 amount)
         private
@@ -329,7 +327,8 @@ contract Marketplace {
 
     // Function
     /**
-     * Purchase a course (must be activated first), funds are transfered to different parties(course owner and contract owner)
+     * Purchase a course (must be activated first)
+     funds are transfered to different parties(course owner and contract owner)
      */
     function purchaseCourse(bytes32 courseId)
         external
