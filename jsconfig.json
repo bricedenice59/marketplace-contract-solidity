@@ -5,6 +5,9 @@
             "@pages/*": [
                 "pages/*"
             ],
+            "@contractConstants/*": [
+                "contracts_constants/*"
+            ],
             "@components/*": [
                 "components/*"
             ],

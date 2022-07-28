@@ -1,78 +1,66 @@
-import { useWeb3 } from "@components/providers/web3";
-import { LoginComponent } from "@components/ui/login";
-import { useNetwork, useWalletInfo } from "@components/hooks/web3";
-import { toast } from "react-toastify";
+import { useMoralis } from "react-moralis";
+import { ConnectButton } from "web3uikit";
+import { useEffect, useState } from "react";
+import { contractAddresses } from "@contractConstants/index.js";
 
 export default function Navbar() {
-  const { connect, isLoading, requireInstall } = useWeb3();
-  const { account, network } = useWalletInfo();
+    const { isWeb3Enabled, chainId } = useMoralis();
+    const [isChainIdSupported, setIsChainIdSupported] = useState(false);
 
-  function openPlayStoreToInstallMetamask() {
-    window.open("https://metamask.io/", "_blank");
-  }
+    function isChainSupported(chainIdParam) {
+        return chainIdParam in contractAddresses;
+    }
 
-  return (
-    <section>
-      <div className="relative pt-6 px-4 sm:px-6 lg:px-8">
-        <nav className="relative" aria-label="Global">
-          <div className="flex items-center justify-center">
-            <div>
-              <a
-                href="#"
-                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
-              >
-                Product
-              </a>
-              <a
-                href="#"
-                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
-              >
-                Features
-              </a>
-              <a
-                href="#"
-                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
-              >
-                Marketplace
-              </a>
+    useEffect(() => {
+        const newChainId = parseInt(chainId).toString();
+        const supported = isChainSupported(newChainId);
+        setIsChainIdSupported(supported);
+    }, [chainId]);
+
+    return (
+        <section>
+            <div className="relative pt-6 px-4 sm:px-6 lg:px-8">
+                <nav className="relative" aria-label="Global">
+                    <div className="flex items-center justify-center">
+                        <div>
+                            <a
+                                href="#"
+                                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
+                            >
+                                Product
+                            </a>
+                            <a
+                                href="#"
+                                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
+                            >
+                                Features
+                            </a>
+                            <a
+                                href="#"
+                                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
+                            >
+                                Marketplace
+                            </a>
+                        </div>
+                        <div>
+                            <a
+                                href="#"
+                                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
+                            >
+                                Company
+                            </a>
+                        </div>
+                        <ConnectButton moralisAuth={false} />
+                        {isWeb3Enabled && !isChainIdSupported ? (
+                            <div className="bg-red-400 p-4 rounded-lg">
+                                <div>Wrong network, please use Rinkeby testnet</div>
+                            </div>
+                        ) : (
+                            <div></div>
+                        )}
+                    </div>
+                </nav>
             </div>
-            <div>
-              <a
-                href="#"
-                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
-              >
-                Company
-              </a>
-            </div>
-            {isLoading && (
-              <span disabled={true} onClick={connect}>
-                Loading...
-              </span>
-            )}
-            {requireInstall && (
-              <span
-                onClick={() => openPlayStoreToInstallMetamask()}
-                className="px-8 py-3 border rounded-md text-base font-medium text-white bg-indigo-600 hover:opacity-30"
-              >
-                Install Metamask
-              </span>
-            )}
-            {!requireInstall && !account.data && (
-              <LoginComponent clickAction={() => connect()} />
-            )}
-            {account.data && <span>{account.data}</span>}
-            <div>
-              {account.data && !network.isChainAllowed && (
-                <div className="bg-red-400 p-4 rounded-lg">
-                  <div>
-                    Connected to wrong network, please use Rinkeby testnet
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </nav>
-      </div>
-    </section>
-  );
+        </section>
+    );
 }
