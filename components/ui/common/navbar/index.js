@@ -1,63 +1,37 @@
-import { useMoralis } from "react-moralis";
 import { ConnectButton } from "web3uikit";
-import { useEffect, useState } from "react";
-import { contractAddresses } from "@contractConstants/index.js";
+import Link from "next/link";
 
 export default function Navbar() {
-    const { isWeb3Enabled, chainId } = useMoralis();
-    const [isChainIdSupported, setIsChainIdSupported] = useState(false);
-
-    function isChainSupported(chainIdParam) {
-        return chainIdParam in contractAddresses;
-    }
-
-    useEffect(() => {
-        const newChainId = parseInt(chainId).toString();
-        const supported = isChainSupported(newChainId);
-        setIsChainIdSupported(supported);
-    }, [chainId]);
-
     return (
         <section>
             <div className="relative pt-6 px-4 sm:px-6 lg:px-8">
                 <nav className="relative" aria-label="Global">
                     <div className="flex items-center justify-center">
-                        <div>
-                            <a
-                                href="#"
+                        <div className="px-4">
+                            <Link
                                 className="font-medium mr-8 text-gray-500 hover:text-gray-900"
-                            >
-                                Product
-                            </a>
-                            <a
-                                href="#"
-                                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
-                            >
-                                Features
-                            </a>
-                            <a
-                                href="#"
-                                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
+                                href="/"
                             >
                                 Marketplace
-                            </a>
+                            </Link>
                         </div>
-                        <div>
-                            <a
-                                href="#"
+                        <div className="px-4">
+                            <Link
                                 className="font-medium mr-8 text-gray-500 hover:text-gray-900"
+                                href="/mycourses"
                             >
-                                Company
-                            </a>
+                                My courses
+                            </Link>
+                        </div>
+                        <div className="px-4">
+                            <Link
+                                className="font-medium mr-8 text-gray-500 hover:text-gray-900"
+                                href="/purchases"
+                            >
+                                My purchases
+                            </Link>
                         </div>
                         <ConnectButton moralisAuth={false} />
-                        {isWeb3Enabled && !isChainIdSupported ? (
-                            <div className="bg-red-400 p-4 rounded-lg">
-                                <div>Wrong network, please use Rinkeby testnet</div>
-                            </div>
-                        ) : (
-                            <div></div>
-                        )}
                     </div>
                 </nav>
             </div>

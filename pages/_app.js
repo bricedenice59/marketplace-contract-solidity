@@ -5,13 +5,15 @@ import "@styles/globals.css";
 function MyApp({ Component, pageProps }) {
     const Layout = Component.Layout;
     return (
-        <MoralisProvider initializeOnMount={false}>
-            <Layout>
-                <NotificationProvider>
-                    <Component {...pageProps} />
-                </NotificationProvider>
-            </Layout>
-        </MoralisProvider>
+        <>
+            <MoralisProvider initializeOnMount={false}>
+                <Layout>
+                    <NotificationProvider>
+                        <Component {...pageProps} />
+                    </NotificationProvider>
+                </Layout>
+            </MoralisProvider>
+        </>
     );
 }
 
