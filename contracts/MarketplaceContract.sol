@@ -46,19 +46,19 @@ contract Marketplace {
         PurchaseStatus purchaseStatus;
     }
 
-    mapping(bytes32 => CourseAuthorCoursesStatus) private allCourseAuthorsCoursesStatus;
+    //list of all courses stored in this contract
+    mapping(bytes32 => Course) private allCourses;
 
     // mapping of courseHash to Course data
     mapping(address => Course[]) private customerOwnedCourses;
-
-    //list of all courses stored in this contract
-    mapping(bytes32 => Course) private allCourses;
 
     // list of all course authors who have course stored in this contract
     mapping(address => CourseAuthor) private allCourseAuthors;
 
     //list of all courses that a course author has published
     mapping(address => Course[]) private allCourseAuthorsPublishedCourses;
+
+    mapping(bytes32 => CourseAuthorCoursesStatus) private allCourseAuthorsCoursesStatus;
 
     constructor() {
         setContractOwner(msg.sender);
@@ -81,6 +81,15 @@ contract Marketplace {
     error Marketplace__InsufficientFunds();
     error Marketplace__WithdrawalFundsFailed();
     error Marketplace__TransferFundsFailed();
+
+    /* events */
+    event CourseAuthorAdded(address indexed author);
+    event CourseAdded(bytes32 indexed courseId);
+    event CoursePurchased(bytes32 indexed courseId);
+    event CourseActivated(bytes32 indexed courseId);
+    event CourseDeactivated(bytes32 indexed courseId);
+    event WithdrawFunds(address indexed toAddress);
+    event CourseAuthorAddressChanged();
 
     // Modifier
     /**
@@ -149,21 +158,29 @@ contract Marketplace {
 
         (bool sent, ) = payable(msg.sender).call{value: amount}("");
         if (!sent) revert Marketplace__WithdrawalFundsFailed();
+        emit WithdrawFunds(address(this));
     }
 
     // Function
     /**
      * Change course's author recipient address
      */
-    function changeCourseAuthorAddress(address courseAuthorAddress, address newAddress)
-        external
-        onlyContractOwner
-    {
-        CourseAuthor storage existingOwner = allCourseAuthors[courseAuthorAddress];
-        if (existingOwner._address == address(0)) revert Marketplace__CourseAuthorDoesNotExist();
+    function changeCourseAuthorAddress(address newAddress) external {
+        CourseAuthor storage existingOwner = allCourseAuthors[msg.sender];
+        if (msg.sender != existingOwner._address) {
+            revert Marketplace__OnlyCourseAuthor();
+        }
         if (newAddress == existingOwner._address) revert Marketplace__CourseOwnerAddressIsSame();
 
         existingOwner._address = newAddress;
+        allCourseAuthors[newAddress] = existingOwner;
+
+        bytes32[] memory courses = getCourseAuthorPublishedCourses(msg.sender);
+        for (uint32 i = 0; i < courses.length; i++) {
+            Course storage course = allCourses[courses[i]];
+            course.author._address = newAddress;
+        }
+        emit CourseAuthorAddressChanged();
     }
 
     // Function
@@ -184,6 +201,7 @@ contract Marketplace {
             rewardPercentage: rewardPercentage
         });
         allCourseAuthors[courseAuthorAddress] = courseOwner;
+        emit CourseAuthorAdded(courseAuthorAddress);
     }
 
     // Function
@@ -226,6 +244,7 @@ contract Marketplace {
 
         //finally, add the course to the list of published courses for the current author
         allCourseAuthorsPublishedCourses[msg.sender].push(course);
+        emit CourseAdded(id);
     }
 
     // Function
@@ -240,6 +259,7 @@ contract Marketplace {
             revert Marketplace__CourseIsAlreadyActivated();
         }
         authorCourseStatus.availability = CourseAvailabilityEnum.Activated;
+        emit CourseActivated(courseId);
     }
 
     // Function
@@ -264,6 +284,7 @@ contract Marketplace {
             revert Marketplace__CourseIsAlreadyDeactivated();
         }
         authorCourseStatus.availability = CourseAvailabilityEnum.Deactivated;
+        emit CourseDeactivated(courseId);
     }
 
     // Function
@@ -322,6 +343,7 @@ contract Marketplace {
             customerOwnedCourses[msg.sender].push(course);
 
             splitAmount(course.author, course.price);
+            emit CoursePurchased(courseId);
             return;
         }
 
@@ -396,6 +418,10 @@ contract Marketplace {
         revert Marketplace__CourseDoesNotExist();
     }
 
+    // Function
+    /**
+     * For a given author address, returns a list of course object
+     */
     function getCourseAuthorPublishedCourses(address authorAddress)
         public
         view

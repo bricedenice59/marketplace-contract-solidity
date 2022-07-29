@@ -298,6 +298,37 @@ describe("Marketplace contract test", function () {
         );
     });
 
+    it("Only a course author can change its recipient address with a new one", async () => {
+        const accounts = await ethers.getSigners();
+        const fakeAuthorAccount = accounts[6];
+
+        const rewardPercentage = 90;
+        await deployedMarketplace.addCourseAuthor(fakeAuthorAccount.address, rewardPercentage);
+
+        const newfakeAuthorAccount = accounts[7];
+        await expect(
+            deployedMarketplace.changeCourseAuthorAddress(newfakeAuthorAccount.address)
+        ).to.be.revertedWith("Marketplace__OnlyCourseAuthor()");
+    });
+
+    it("Change an author recipient address", async () => {
+        const accounts = await ethers.getSigners();
+        const fakeAuthorAccount = accounts[8];
+
+        const rewardPercentage = 27;
+        await deployedMarketplace.addCourseAuthor(fakeAuthorAccount.address, rewardPercentage);
+
+        const newfakeAuthorAccount = accounts[9];
+        deployedMarketplace
+            .connect(fakeAuthorAccount)
+            .changeCourseAuthorAddress(newfakeAuthorAccount.address);
+
+        const courseOwnerRewardPercentage =
+            await deployedMarketplace.getCourseAuthorRewardPercentage(newfakeAuthorAccount.address);
+
+        assert.equal(courseOwnerRewardPercentage, rewardPercentage);
+    });
+
     it("Transfer marketplace ownership", async () => {
         await deployedMarketplace.transferOwnership(newcontractOwnerAccount.address);
 
