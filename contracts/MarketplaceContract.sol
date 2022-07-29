@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.8.14;
+pragma solidity ^0.8.0;
 
 // SafeMath
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
@@ -88,7 +88,7 @@ contract Marketplace {
     event CoursePurchased(bytes32 indexed courseId);
     event CourseActivated(bytes32 indexed courseId);
     event CourseDeactivated(bytes32 indexed courseId);
-    event WithdrawFunds(address indexed toAddress);
+    event WithdrawFunds(address indexed toAddress, bool indexed success);
     event CourseAuthorAddressChanged();
 
     // Modifier
@@ -148,7 +148,7 @@ contract Marketplace {
     /**
      * Allows contract owner to withdraw some or all of the funds earned from purchases.
      */
-    function withdrawMarketplaceFunds(uint256 amount) public onlyContractOwner {
+    function withdrawMarketplaceFunds(uint256 amount) external onlyContractOwner {
         /**
          * @param uint Amount to withdraw (in Wei)
          */
@@ -157,8 +157,9 @@ contract Marketplace {
         if (contractBalance <= amount) revert Marketplace__InsufficientFunds();
 
         (bool sent, ) = payable(msg.sender).call{value: amount}("");
+        emit WithdrawFunds(address(this), sent);
+
         if (!sent) revert Marketplace__WithdrawalFundsFailed();
-        emit WithdrawFunds(address(this));
     }
 
     // Function
@@ -291,7 +292,11 @@ contract Marketplace {
     /**
      * Retrieves the status of a course (activated or deactivated)
      */
-    function getCourseStatus(bytes32 courseId) public view returns (CourseAvailabilityEnum status) {
+    function getCourseStatus(bytes32 courseId)
+        external
+        view
+        returns (CourseAvailabilityEnum status)
+    {
         Course memory course = getCourseFromId(courseId);
 
         CourseAuthorCoursesStatus memory authorCourseStatus = allCourseAuthorsCoursesStatus[
@@ -342,8 +347,9 @@ contract Marketplace {
             course.author = courseOwner;
             customerOwnedCourses[msg.sender].push(course);
 
-            splitAmount(course.author, course.price);
             emit CoursePurchased(courseId);
+            splitAmount(course.author, course.price);
+
             return;
         }
 
@@ -376,15 +382,17 @@ contract Marketplace {
      * For a given address, returns all bought courses
      */
     function getUserBoughtCoursesIds(address _address) external view returns (bytes32[] memory) {
-        uint32 resultCount;
+        uint32 resultCount = 0;
 
         Course[] memory owned = customerOwnedCourses[_address];
+        if (owned.length == 0) return new bytes32[](resultCount);
+
         for (uint32 i = 0; i < owned.length; i++) {
             if (owned[i].purchaseStatus == PurchaseStatus.Purchased) resultCount++;
         }
 
         bytes32[] memory ids = new bytes32[](resultCount);
-        uint256 j;
+        uint256 j = 0;
         for (uint256 i = 0; i < owned.length; i++) {
             if (owned[i].purchaseStatus == PurchaseStatus.Purchased) {
                 ids[j] = owned[i].id;

@@ -34,4 +34,5 @@ cache/*
 .env.production
 .env.development
 deployments/*
+slither-results.json
 
