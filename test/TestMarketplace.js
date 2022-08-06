@@ -7,7 +7,7 @@ const { utils } = require("ethers");
 describe("Marketplace contract test", function () {
     var deployedMarketplace;
     var deployer;
-    var courseOwnerAccount;
+    var courseAuthorAccount;
     var buyerAccount;
     var newcontractOwnerAccount;
 
@@ -16,15 +16,16 @@ describe("Marketplace contract test", function () {
         deployer = (await getNamedAccounts()).deployer;
 
         await deployments.fixture();
+
         deployedMarketplace = await ethers.getContract("Marketplace", deployer);
 
         var accounts = await ethers.getSigners();
-        courseOwnerAccount = accounts[1];
+        courseAuthorAccount = accounts[1];
         buyerAccount = accounts[2];
         newcontractOwnerAccount = accounts[3];
 
         console.log(`Deployer address: ${deployer}`);
-        console.log(`CourseOwner address: ${courseOwnerAccount.address}`);
+        console.log(`CourseOwner address: ${courseAuthorAccount.address}`);
         console.log(`Buyer address: ${buyerAccount.address}`);
         console.log(`NewContractOwner after ownership changes: ${newcontractOwnerAccount.address}`);
 
@@ -35,10 +36,10 @@ describe("Marketplace contract test", function () {
     it("Add a new course author", async () => {
         const rewardPercentage = 90;
 
-        await deployedMarketplace.addCourseAuthor(courseOwnerAccount.address, rewardPercentage);
+        await deployedMarketplace.addCourseAuthor(courseAuthorAccount.address, rewardPercentage);
     });
 
-    it("Only the course owner can add HIS own new courses to the contract, it shoud fail if different", async () => {
+    it("Only the course owner can add his own new courses to the contract, it shoud fail if different", async () => {
         var price = testUtils.getRandomNumberBetween(2500, 4000);
         var title = utils.keccak256(
             utils.toUtf8Bytes(
@@ -46,7 +47,7 @@ describe("Marketplace contract test", function () {
             )
         );
 
-        await deployedMarketplace.connect(courseOwnerAccount).addCourse(courseId, title, price);
+        await deployedMarketplace.connect(courseAuthorAccount).addCourse(courseId, title, price);
 
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
         assert.equal(coursePrice.toNumber(), price, `The course should have a price of: ${price}`);
@@ -62,6 +63,26 @@ describe("Marketplace contract test", function () {
         await expect(
             deployedMarketplace.connect(buyerAccount).addCourse(newCourseId, title, price)
         ).to.be.revertedWith("Marketplace__OnlyCourseAuthor");
+    });
+
+    it("Attempt to add a course that already exists, it shoud fail with error CourseDoesAlreadyExist()", async () => {
+        var price = testUtils.getRandomNumberBetween(2500, 4000);
+        var title = utils.keccak256(
+            utils.toUtf8Bytes(
+                testUtils.generateRandomString(testUtils.getRandomNumberBetween(30, 70))
+            )
+        );
+
+        await expect(
+            deployedMarketplace.connect(courseAuthorAccount).addCourse(courseId, title, price)
+        ).to.be.revertedWith("Marketplace__CourseDoesAlreadyExist");
+    });
+
+    it("Attempt to get price from a course that does not exist, it shoud fail with error CourseDoesNotExist()", async () => {
+        var newCourseId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
+        await expect(deployedMarketplace.getCoursePrice(newCourseId)).to.be.revertedWith(
+            "Marketplace__CourseDoesNotExist"
+        );
     });
 
     it("Retrieves correctly all courses published by a course author ", async () => {
@@ -95,7 +116,7 @@ describe("Marketplace contract test", function () {
         }
     });
 
-    it("The contract owner cannot publish a course, it should fail with errror OnlyCourseOwner()", async () => {
+    it("The contract owner cannot publish a course, it should fail with error OnlyCourseAuthor()", async () => {
         var price = testUtils.getRandomNumberBetween(50, 100);
         var title = utils.keccak256(
             utils.toUtf8Bytes(
@@ -124,9 +145,9 @@ describe("Marketplace contract test", function () {
 
     it("Purchase a course and check if both course author and contract owner have received the money according the reward percentage previously negotiated", async () => {
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
-        const courseOwnerDataAddr = courseOwnerAccount.address;
+        const courseOwnerDataAddr = courseAuthorAccount.address;
         const courseOwnerRewardPercentage =
-            await deployedMarketplace.getCourseAuthorRewardPercentage(courseOwnerAccount.address);
+            await deployedMarketplace.getCourseAuthorRewardPercentage(courseAuthorAccount.address);
 
         //calculation of funds to send
         var ethExchangeRate = 0.0008642427880341;
@@ -209,7 +230,7 @@ describe("Marketplace contract test", function () {
     });
 
     it("Attempt to deactivate a course by the course author account should be allowed and be successfull", async () => {
-        await deployedMarketplace.connect(courseOwnerAccount).deactivateCourse(courseId);
+        await deployedMarketplace.connect(courseAuthorAccount).deactivateCourse(courseId);
 
         // from contract :
         // enum CourseAvailabilityEnum {
@@ -218,7 +239,7 @@ describe("Marketplace contract test", function () {
         // }
 
         var getCourseStatusResult = await deployedMarketplace
-            .connect(courseOwnerAccount)
+            .connect(courseAuthorAccount)
             .getCourseStatus(courseId);
 
         assert.equal(
@@ -230,8 +251,15 @@ describe("Marketplace contract test", function () {
 
     it("Attempt to deactivate a course that is already deactivated should fail with error CourseIsAlreadyDeactivated()", async () => {
         await expect(
-            deployedMarketplace.connect(courseOwnerAccount).deactivateCourse(courseId)
+            deployedMarketplace.connect(courseAuthorAccount).deactivateCourse(courseId)
         ).to.be.revertedWith("Marketplace__CourseIsAlreadyDeactivated");
+    });
+
+    it("Attempt to deactivate a course that does not exist should fail with error CourseDoesNotExist()", async () => {
+        var randomCourseId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
+        await expect(
+            deployedMarketplace.connect(courseAuthorAccount).deactivateCourse(randomCourseId)
+        ).to.be.revertedWith("Marketplace__CourseDoesNotExist");
     });
 
     it("Try purchasing a deactivated course, it should fail with following error: CourseMustBeActivated()", async () => {
@@ -241,7 +269,7 @@ describe("Marketplace contract test", function () {
         var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
 
         await expect(
-            deployedMarketplace.connect(courseOwnerAccount).purchaseCourse(courseId, {
+            deployedMarketplace.connect(courseAuthorAccount).purchaseCourse(courseId, {
                 value: valueToSend,
             })
         ).to.be.revertedWith("Marketplace__CourseMustBeActivated");
@@ -252,7 +280,7 @@ describe("Marketplace contract test", function () {
 
         await expect(
             deployedMarketplace
-                .connect(courseOwnerAccount)
+                .connect(courseAuthorAccount)
                 .withdrawMarketplaceFunds(fundstoWithdraw)
         ).to.be.revertedWith("Marketplace__OnlyContractOwner");
     });
