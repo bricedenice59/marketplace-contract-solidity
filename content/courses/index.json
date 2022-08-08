@@ -1,6 +1,6 @@
 [
     {
-        "id": "520a0604-1681-43d4-95b6-f8a2384bcdb5",
+        "id": "ed72ebc95f84069c993672bd7ba989a1aea48aaa07cc791c0b8338a785452c6f",
         "title": "Next JS & Typescript with Shopify Integration - Full Guide",
         "coverImage": "https://thrangra.sirv.com/Next_TypeScript_Shopify_Final.jpg",
         "author": "Filip Jerga",
@@ -11,12 +11,10 @@
             "Build ecommerce apps with modern technologies",
             "Use Shopify to your advantage"
         ],
-        "price": 75,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 75
     },
     {
-        "id": "f105a3db-f521-47ec-9779-123ac5ce70d4",
+        "id": "8d4790a2a7408b0d6868d8860526fc0b7160e8c490115d8a3acb630489179a01",
         "title": "Gatsby JS Developer's Guide - Important Parts & Blog App",
         "coverImage": "https://thrangra.sirv.com/Gatsby.jpeg",
         "author": "Filip Jerga",
@@ -28,12 +26,10 @@
             "Understand meaning and benefits of JAMStack",
             "Use GraphQL to your advantage"
         ],
-        "price": 55,
-        "courseAuthor": "0xC188d5A9E37963EA15968425d6cdC10541ABAeDE",
-        "createdAt": ""
+        "price": 55
     },
     {
-        "id": "bf17ef8e-6e53-4185-a1c4-f54930e7f210",
+        "id": "df07a93cdbcd4674d6a79ce7c10e140a0e9dd9e01e9c166dd4f21626920c86c5",
         "type": "Unity",
         "title": "The Complete Unity Guide 3D - Beginner to RPG Game Dev in C#",
         "description": "Build 3 games & learn Unity practical way! Start with fundamentals and finish with an RPG game. Using Unity 2020 and C#",
@@ -47,12 +43,10 @@
             "Create a RPG game with tons of features",
             "Math explanations behind the code."
         ],
-        "price": 90,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 90
     },
     {
-        "id": "fe61e5b0-62cd-4a0f-a931-aeb46bcb2ab8",
+        "id": "b7b2ffa22e663b9bd2ecedcb8b3e8a6b8e4bfd6ee09894ac69e3344677960edd",
         "type": "Phaser 3",
         "title": "Game Development in JS - The Complete Guide (w/ Phaser 3)",
         "description": "Start building your own games and publish them on Facebook. Learn how to create HTML5 games in Javascript with Phaser 3.",
@@ -66,12 +60,10 @@
             "Use Javascript to develop games for Facebook",
             "Publish your own game on Facebook Instant Games"
         ],
-        "price": 15,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 15
     },
     {
-        "id": "022eaadf-4b59-4d02-932f-525c312f988a",
+        "id": "3efd909def85bca99c9657a52115da4f6a96cdf1f603a966b59b768217bd49e5",
         "type": "Electron JS",
         "title": "Electron & React JS: Build a Native Chat App with Javascript",
         "description": "Learn how to build a chat app with Electron & React JS. Utilize React JS + Firebase(DB) to create a fully native app",
@@ -85,12 +77,10 @@
             "Create native apps with Javascript, Html + CSS",
             "Learn how to use React JS in combination with Electron"
         ],
-        "price": 40,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 40
     },
     {
-        "id": "9f1f9f64-cc51-4aab-b90c-db67055a2692",
+        "id": "344dbf84bc70a11cb3f1b942a157246c8a87daef7ab44e6e15dfd2c6e3762e15",
         "type": "Vue, React, Angular",
         "title": "Vue JS 3, React JS & Angular - Guide to Popular Frameworks",
         "description": "Understand basics and difficult parts of the 3 most popular frameworks - React JS, Angular and Vue. All in one course!",
@@ -103,12 +93,10 @@
             "Features explained on practical examples",
             "Base and core concepts of the three most popular frameworks"
         ],
-        "price": 75,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 75
     },
     {
-        "id": "8570f57e-4896-4412-b26e-e03f039e1cf1",
+        "id": "193e3654e28c75b96fa2455abd1e15af254cb8276a1227f7b467be6885267cde",
         "type": "Vue JS",
         "title": "Vue JS 3 - The Practical Guide",
         "description": "Understand basic and difficult parts of Vue JS 3 framework. Course is including Vue Router and latest Vue JS 3 features including Composition API.    ",
@@ -120,12 +108,10 @@
             "Features explained on practical examples",
             "Base and core concepts of Vue JS 3"
         ],
-        "price": 55,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 55
     },
     {
-        "id": "3d6fe032-d6c8-4746-8f70-3bbdd8fee9f1",
+        "id": "f7f058781804ba2298050d88dcd31b5b692e2206da75a28bcabae4f3d768d05c",
         "type": "Next JS",
         "title": "Complete Next.js with React & Node - Beautiful Portfolio App",
         "description": "Build Serverless Web Apps with Next.js. Learn Hooks. Deploy to Vercel. Next.js (Next JS 10+), React (React 16+) & Node.",
@@ -139,12 +125,10 @@
             "Create SEO (Search Engine Optimisation) and Isomorphic Friendly Applications",
             "Establish yourself in field of the exciting Next and React web development environment"
         ],
-        "price": 90,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 90
     },
     {
-        "id": "405538a0-f620-4c01-8bc3-a2189ce8effb",
+        "id": "0598f996a399789afcad45aa51e89a207e5fde67c51a6b36011f381572e40d0a",
         "type": "React, Angular",
         "title": "React, Angular, Node In-Depth Guide: Beginner to Pro (2020)",
         "description": "Beginner to Advance Web Developer Guide. Master Angular (Angular 8+), React + Redux (React 16.12+) & Node with Mongo DB!",
@@ -158,12 +142,10 @@
             "Create own web applications in most demanded frameworks on the market",
             "Establish yourself in field of the exciting Angular, React and Node web development environment"
         ],
-        "price": 50,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 50
     },
     {
-        "id": "0218c2e8-ef3a-43b3-aa97-f462f997b765",
+        "id": "6136fdca1d129f0c04031cb76cd9572b2d2246d734788987f08da59037305710",
         "type": "React JS",
         "title": "React JS & Firebase Complete Course (incl. Chat Application)",
         "description": "Create 'real world' React JS applications connected to Firestore (Firebase). Redux, authentication + real time features!",
@@ -176,12 +158,10 @@
             "Understand the processes and concepts of React JS 2",
             "Use gained knowledge to create your own Web Applications"
         ],
-        "price": 35,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 35
     },
     {
-        "id": "8183ee11-2ca2-474f-96bf-3772942132c0",
+        "id": "36d22c7ed84e32b5dc4f877d34f458f89ec2acf9c980d6b40f8be8fff3c5ab23",
         "type": "Vue JS",
         "title": "Vue JS 2 &  Firebase Complete Course",
         "description": "Learn how to create 'real world' Vue JS 2 application connected to Firestore(Firebase) Database.",
@@ -194,12 +174,10 @@
             "Understand the processes and concepts of Vue JS 2",
             "Use gained knowledge to create your own Web Applications"
         ],
-        "price": 65,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 65
     },
     {
-        "id": "09984bba-ae3a-4f81-ad35-baba1fe266af",
+        "id": "bd18dac70c4edf50480b66b6b0681c90df8b888329b022816d4ab517b3f618ff",
         "type": "Next JS",
         "title": "Next.JS with Sanity CMS - Serverless Blog App (w/ Vercel)",
         "description": "Build your own Blog App with the latest Next.JS & React(Next 9.4+, React hooks). Learn how to use headless Sanity CMS.",
@@ -213,12 +191,10 @@
             "Deploy Serverless Apps !",
             "Integrate Sanity CMS"
         ],
-        "price": 110,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 110
     },
     {
-        "id": "74e94db5-b3b6-4a0c-90a4-b396f84a5320",
+        "id": "b2c7a4d122f9d118c20c4359fb737810d643d996e28c9b8a6e6abccbf0575048",
         "type": "Next JS",
         "title": "Next.js and Apollo - Portfolio App (w/ React, GraphQL, Node)",
         "description": "Learn GraphQL and Apollo! Create a fast portfolio application in Next.js(Next 9+) / React backed with Apollo + Node.js",
@@ -231,12 +207,10 @@
             "Create your own portfolio application in most demanded frameworks on the market",
             "Grasp full power of GraphQL"
         ],
-        "price": 59,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 59
     },
     {
-        "id": "03b4c30e-270a-4cf6-8b9b-7ef8ca74d0a5",
+        "id": "a71a364ccd19d79b3f8de1d0d2e630be8a1a117aa579723198c0a2ae268c9703",
         "type": "Vue JS",
         "title": "The Complete Vue JS Developer Course – inc. Vue JS 2!",
         "description": "Build real web apps with Vuex, Router, Node! Master Vue Js and Vue JS 2!",
@@ -250,12 +224,10 @@
             "Use gained knowledge to create your own Web Applications",
             "Become fluent in concepts and tools like Vuex, MongoDb, Sockets, Authentication"
         ],
-        "price": 65,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 65
     },
     {
-        "id": "c6e10167-0bf5-4ab4-89b4-1f7d729fe054",
+        "id": "c2c79d00a5adcde6490a41cfc71a7826dc6939047577eac9572ba8206f5a5bcf",
         "type": "Nuxt JS",
         "title": "The Complete Nuxt.js & Vue.js Course | Self Promo App",
         "description": "Complete Developer Guide covering Vue.js and Nuxt.js basic to advance concepts. Get your hands on real projects.",
@@ -269,8 +241,6 @@
             "Use gained knowledge to create your own Web Applications",
             "Become fluent in concepts and tools like SSR, Vuex, Vuelidate and more"
         ],
-        "price": 80,
-        "courseAuthor": "",
-        "createdAt": ""
+        "price": 80
     }
 ]
