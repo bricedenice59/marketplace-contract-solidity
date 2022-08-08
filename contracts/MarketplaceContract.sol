@@ -59,8 +59,6 @@ contract Marketplace {
     //That course is gonna be stored on the storage
     struct Course {
         bytes32 id;
-        bytes32 title;
-        uint256 price;
         CourseAuthor author;
         PurchaseStatus purchaseStatus;
     }
@@ -232,15 +230,9 @@ contract Marketplace {
     /**
      * Add a new course to the contract
      */
-    function addCourse(
-        bytes32 id,
-        bytes32 title,
-        uint32 price
-    ) external onlyAuthor checkCourseShouldNotExist(id) {
+    function addCourse(bytes32 id) external onlyAuthor checkCourseShouldNotExist(id) {
         Course memory course = Course({
             id: id,
-            title: title,
-            price: price,
             author: allCourseAuthors[msg.sender],
             purchaseStatus: PurchaseStatus.NotPurchased
         });
@@ -351,28 +343,18 @@ contract Marketplace {
 
         if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
             Course memory course = allCourses[courseId];
-            course.price = msg.value;
             course.purchaseStatus = PurchaseStatus.Purchased;
             //get latest update from course author (he/she may have changed his fund's recipient address)
             course.author = allCourseAuthors[course.author._address];
             customerOwnedCourses[msg.sender].push(course);
 
             emit CoursePurchased(courseId);
-            splitAmount(course.author, course.price);
+            splitAmount(course.author, msg.value);
 
             return;
         }
 
         revert Marketplace__CourseAlreadyBought();
-    }
-
-    function getCoursePrice(bytes32 courseId)
-        external
-        view
-        checkCourseShouldExist(courseId)
-        returns (uint256 price)
-    {
-        return allCourses[courseId].price;
     }
 
     // Function

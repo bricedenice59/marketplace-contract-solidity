@@ -40,7 +40,11 @@ module.exports = {
                 NEWCONTRACT_OWNER_ACCOUNT,
             ],
             chainId: 5,
-            blockConfirmations: 6,
+            blockConfirmationsForTransactions: 2,
+            blockConfirmationsForContractVerification: 6,
+            gas: "auto",
+            gasPrice: "auto",
+            gasMultiplier: 2,
         },
     },
     gasReporter: {
@@ -58,7 +62,7 @@ module.exports = {
         deployer: {
             default: 0,
         },
-        courseOwner: {
+        courseAuthor: {
             default: 1,
         },
         buyer: {
@@ -67,5 +71,8 @@ module.exports = {
         newContractOwner: {
             default: 3,
         },
+    },
+    mocha: {
+        timeout: 600000,
     },
 };

@@ -10,10 +10,10 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
 
     var deploymentResult = await deploy("Marketplace", {
         from: deployer,
-        gasLimit: 4000000,
+        gasLimit: network.config.gasLimit,
         args: args,
         log: true,
-        waitConfirmations: network.config.blockConfirmations || 1,
+        waitConfirmations: network.config.blockConfirmationsForContractVerification || 1,
     });
 
     //only verifies on testnets
