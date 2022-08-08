@@ -59,7 +59,7 @@ async function main() {
     for (let i = 0; i < courses.data.length; i++) {
         const course = courses.data[i];
         const courseId = "0x" + course.id;
-        const randomAccount = accounts[getRandomInt(1, accounts.length)];
+        const randomAccount = accounts[getRandomInt(1, accounts.length - 1)];
         console.log(
             `Adding course with id= ${courseId}; course author is ${randomAccount.address}`
         );
