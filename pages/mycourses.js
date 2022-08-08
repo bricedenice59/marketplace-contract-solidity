@@ -2,11 +2,12 @@ import { BaseLayout } from "@components/ui/layout";
 import { useWeb3Contract, useMoralis } from "react-moralis";
 import { contractAddresses, contractAbi } from "../contracts_constants/index";
 import { useEffect, useState } from "react";
+import { CourseListComponent } from "@components/ui/course/index";
 
 export default function Course() {
     const { chainId, isWeb3Enabled, account } = useMoralis();
     const { runContractFunction } = useWeb3Contract();
-    const [listOfCoursesForAuthor, setlistOfCoursesForAuthor] = useState(false);
+    const [listOfCoursesForAuthor, setlistOfCoursesForAuthor] = useState([]);
 
     function isChainIdSupported(chainIdParam) {
         return chainIdParam in contractAddresses;
@@ -21,7 +22,7 @@ export default function Course() {
     }
 
     const fetchAuthorCourses = async () => {
-        var allCoursesPublished = 0;
+        var allCoursesPublished;
 
         const options = {
             abi: contractAbi,
@@ -36,6 +37,7 @@ export default function Course() {
             });
         } catch (error) {}
 
+        if (!allCoursesPublished) return [];
         return allCoursesPublished;
     };
 
@@ -44,7 +46,6 @@ export default function Course() {
             async function DoFetch() {
                 const authorCourses = await fetchAuthorCourses();
                 setlistOfCoursesForAuthor(authorCourses);
-                console.log(authorCourses);
             }
             DoFetch();
         }
@@ -54,7 +55,19 @@ export default function Course() {
         <div>
             {isWeb3Enabled ? (
                 getDeployedAddress() != null ? (
-                    <div>{listOfCoursesForAuthor}</div>
+                    <div className="py-10">
+                        <section className="grid grid-cols-2 gap-6 mb-5">
+                            {listOfCoursesForAuthor.map((id, i) => (
+                                <div
+                                    key={id}
+                                    className="bg-white rounded-xl shadow-md overflow-hidden md:max-w-3xl"
+                                >
+                                    <CourseListComponent courseId={id}></CourseListComponent>
+                                </div>
+                            ))}
+                        </section>
+                        {/* <CourseListComponent listCourseIds={listOfCoursesForAuthor} /> */}
+                    </div>
                 ) : (
                     <div></div>
                 )
