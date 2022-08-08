@@ -58,14 +58,13 @@ async function main() {
     console.log("Add courses to marketplace contract with randomly chosen course author(s)...");
     for (let i = 0; i < courses.data.length; i++) {
         const course = courses.data[i];
-        const courseId = "0x" + course.id;
         const randomAccount = accounts[getRandomInt(1, accounts.length - 1)];
         console.log(
-            `Adding course with id= ${courseId}; course author is ${randomAccount.address}`
+            `Adding course with id= ${course.id}; course author is ${randomAccount.address}`
         );
-        const txAddCourse = await deployedMarketplace.connect(randomAccount).addCourse(courseId);
+        const txAddCourse = await deployedMarketplace.connect(randomAccount).addCourse(course.id);
         await txAddCourse.wait(network.config.blockConfirmationsForTransactions);
-        console.log(`Course ${courseId} added!`);
+        console.log(`Course ${course.id} added!`);
     }
 
     console.log("Marketplace populated!");

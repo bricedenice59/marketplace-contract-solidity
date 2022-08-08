@@ -1,6 +1,7 @@
 [
     {
-        "id": "ed72ebc95f84069c993672bd7ba989a1aea48aaa07cc791c0b8338a785452c6f",
+        "id": "0xed72ebc95f84069c993672bd7ba989a1aea48aaa07cc791c0b8338a785452c6f",
+        "type": "Shopify",
         "title": "Next JS & Typescript with Shopify Integration - Full Guide",
         "coverImage": "https://thrangra.sirv.com/Next_TypeScript_Shopify_Final.jpg",
         "author": "Filip Jerga",
@@ -14,7 +15,8 @@
         "price": 75
     },
     {
-        "id": "8d4790a2a7408b0d6868d8860526fc0b7160e8c490115d8a3acb630489179a01",
+        "id": "0x8d4790a2a7408b0d6868d8860526fc0b7160e8c490115d8a3acb630489179a01",
+        "type": "Javascript",
         "title": "Gatsby JS Developer's Guide - Important Parts & Blog App",
         "coverImage": "https://thrangra.sirv.com/Gatsby.jpeg",
         "author": "Filip Jerga",
@@ -29,7 +31,7 @@
         "price": 55
     },
     {
-        "id": "df07a93cdbcd4674d6a79ce7c10e140a0e9dd9e01e9c166dd4f21626920c86c5",
+        "id": "0xdf07a93cdbcd4674d6a79ce7c10e140a0e9dd9e01e9c166dd4f21626920c86c5",
         "type": "Unity",
         "title": "The Complete Unity Guide 3D - Beginner to RPG Game Dev in C#",
         "description": "Build 3 games & learn Unity practical way! Start with fundamentals and finish with an RPG game. Using Unity 2020 and C#",
@@ -46,7 +48,7 @@
         "price": 90
     },
     {
-        "id": "b7b2ffa22e663b9bd2ecedcb8b3e8a6b8e4bfd6ee09894ac69e3344677960edd",
+        "id": "0xb7b2ffa22e663b9bd2ecedcb8b3e8a6b8e4bfd6ee09894ac69e3344677960edd",
         "type": "Phaser 3",
         "title": "Game Development in JS - The Complete Guide (w/ Phaser 3)",
         "description": "Start building your own games and publish them on Facebook. Learn how to create HTML5 games in Javascript with Phaser 3.",
@@ -63,7 +65,7 @@
         "price": 15
     },
     {
-        "id": "3efd909def85bca99c9657a52115da4f6a96cdf1f603a966b59b768217bd49e5",
+        "id": "0x3efd909def85bca99c9657a52115da4f6a96cdf1f603a966b59b768217bd49e5",
         "type": "Electron JS",
         "title": "Electron & React JS: Build a Native Chat App with Javascript",
         "description": "Learn how to build a chat app with Electron & React JS. Utilize React JS + Firebase(DB) to create a fully native app",
@@ -80,7 +82,7 @@
         "price": 40
     },
     {
-        "id": "344dbf84bc70a11cb3f1b942a157246c8a87daef7ab44e6e15dfd2c6e3762e15",
+        "id": "0x344dbf84bc70a11cb3f1b942a157246c8a87daef7ab44e6e15dfd2c6e3762e15",
         "type": "Vue, React, Angular",
         "title": "Vue JS 3, React JS & Angular - Guide to Popular Frameworks",
         "description": "Understand basics and difficult parts of the 3 most popular frameworks - React JS, Angular and Vue. All in one course!",
@@ -96,7 +98,7 @@
         "price": 75
     },
     {
-        "id": "193e3654e28c75b96fa2455abd1e15af254cb8276a1227f7b467be6885267cde",
+        "id": "0x193e3654e28c75b96fa2455abd1e15af254cb8276a1227f7b467be6885267cde",
         "type": "Vue JS",
         "title": "Vue JS 3 - The Practical Guide",
         "description": "Understand basic and difficult parts of Vue JS 3 framework. Course is including Vue Router and latest Vue JS 3 features including Composition API.    ",
@@ -111,7 +113,7 @@
         "price": 55
     },
     {
-        "id": "f7f058781804ba2298050d88dcd31b5b692e2206da75a28bcabae4f3d768d05c",
+        "id": "0xf7f058781804ba2298050d88dcd31b5b692e2206da75a28bcabae4f3d768d05c",
         "type": "Next JS",
         "title": "Complete Next.js with React & Node - Beautiful Portfolio App",
         "description": "Build Serverless Web Apps with Next.js. Learn Hooks. Deploy to Vercel. Next.js (Next JS 10+), React (React 16+) & Node.",
@@ -128,7 +130,7 @@
         "price": 90
     },
     {
-        "id": "0598f996a399789afcad45aa51e89a207e5fde67c51a6b36011f381572e40d0a",
+        "id": "0x0598f996a399789afcad45aa51e89a207e5fde67c51a6b36011f381572e40d0a",
         "type": "React, Angular",
         "title": "React, Angular, Node In-Depth Guide: Beginner to Pro (2020)",
         "description": "Beginner to Advance Web Developer Guide. Master Angular (Angular 8+), React + Redux (React 16.12+) & Node with Mongo DB!",
@@ -145,7 +147,7 @@
         "price": 50
     },
     {
-        "id": "6136fdca1d129f0c04031cb76cd9572b2d2246d734788987f08da59037305710",
+        "id": "0x6136fdca1d129f0c04031cb76cd9572b2d2246d734788987f08da59037305710",
         "type": "React JS",
         "title": "React JS & Firebase Complete Course (incl. Chat Application)",
         "description": "Create 'real world' React JS applications connected to Firestore (Firebase). Redux, authentication + real time features!",
@@ -161,7 +163,7 @@
         "price": 35
     },
     {
-        "id": "36d22c7ed84e32b5dc4f877d34f458f89ec2acf9c980d6b40f8be8fff3c5ab23",
+        "id": "0x36d22c7ed84e32b5dc4f877d34f458f89ec2acf9c980d6b40f8be8fff3c5ab23",
         "type": "Vue JS",
         "title": "Vue JS 2 &  Firebase Complete Course",
         "description": "Learn how to create 'real world' Vue JS 2 application connected to Firestore(Firebase) Database.",
@@ -177,7 +179,7 @@
         "price": 65
     },
     {
-        "id": "bd18dac70c4edf50480b66b6b0681c90df8b888329b022816d4ab517b3f618ff",
+        "id": "0xbd18dac70c4edf50480b66b6b0681c90df8b888329b022816d4ab517b3f618ff",
         "type": "Next JS",
         "title": "Next.JS with Sanity CMS - Serverless Blog App (w/ Vercel)",
         "description": "Build your own Blog App with the latest Next.JS & React(Next 9.4+, React hooks). Learn how to use headless Sanity CMS.",
@@ -194,7 +196,7 @@
         "price": 110
     },
     {
-        "id": "b2c7a4d122f9d118c20c4359fb737810d643d996e28c9b8a6e6abccbf0575048",
+        "id": "0xb2c7a4d122f9d118c20c4359fb737810d643d996e28c9b8a6e6abccbf0575048",
         "type": "Next JS",
         "title": "Next.js and Apollo - Portfolio App (w/ React, GraphQL, Node)",
         "description": "Learn GraphQL and Apollo! Create a fast portfolio application in Next.js(Next 9+) / React backed with Apollo + Node.js",
@@ -210,7 +212,7 @@
         "price": 59
     },
     {
-        "id": "a71a364ccd19d79b3f8de1d0d2e630be8a1a117aa579723198c0a2ae268c9703",
+        "id": "0xa71a364ccd19d79b3f8de1d0d2e630be8a1a117aa579723198c0a2ae268c9703",
         "type": "Vue JS",
         "title": "The Complete Vue JS Developer Course – inc. Vue JS 2!",
         "description": "Build real web apps with Vuex, Router, Node! Master Vue Js and Vue JS 2!",
@@ -227,7 +229,7 @@
         "price": 65
     },
     {
-        "id": "c2c79d00a5adcde6490a41cfc71a7826dc6939047577eac9572ba8206f5a5bcf",
+        "id": "0xc2c79d00a5adcde6490a41cfc71a7826dc6939047577eac9572ba8206f5a5bcf",
         "type": "Nuxt JS",
         "title": "The Complete Nuxt.js & Vue.js Course | Self Promo App",
         "description": "Complete Developer Guide covering Vue.js and Nuxt.js basic to advance concepts. Get your hands on real projects.",
