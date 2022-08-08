@@ -4,13 +4,7 @@ import { CourseListComponent } from "@components/ui/course";
 import { getAllCourses } from "@content/courses/fetcher";
 
 export default function Home({ courses }) {
-    return (
-        <>
-            <HeroComponent />
-            {JSON.stringify(courses)}
-            <CourseListComponent />
-        </>
-    );
+    return <></>;
 }
 
 export function getStaticProps() {

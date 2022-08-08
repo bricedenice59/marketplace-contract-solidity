@@ -23,7 +23,7 @@ export default function BaseLayout({ children }) {
             {isWeb3Enabled && !isChainIdSupported ? (
                 <div className="mt-5 flex flex-col items-center bg-red-400 p-4 rounded-lg ">
                     <div className="text-sm text-primary-2 font-bold">
-                        Wrong network, please use Rinkeby testnet
+                        Wrong network, please use Goerli testnet
                     </div>
                 </div>
             ) : (

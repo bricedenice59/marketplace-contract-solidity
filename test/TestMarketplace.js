@@ -25,7 +25,7 @@ describe("Marketplace contract test", function () {
         newcontractOwnerAccount = accounts[3];
 
         console.log(`Deployer address: ${deployer}`);
-        console.log(`CourseOwner address: ${courseAuthorAccount.address}`);
+        console.log(`CourseAuthor address: ${courseAuthorAccount.address}`);
         console.log(`Buyer address: ${buyerAccount.address}`);
         console.log(`NewContractOwner after ownership changes: ${newcontractOwnerAccount.address}`);
 
@@ -161,8 +161,8 @@ describe("Marketplace contract test", function () {
 
     it("Purchase a course and check if both course author and contract owner have received the money according the reward percentage previously negotiated", async () => {
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
-        const courseOwnerDataAddr = courseAuthorAccount.address;
-        const courseOwnerRewardPercentage =
+        const courseAuthorDataAddr = courseAuthorAccount.address;
+        const courseAuthorRewardPercentage =
             await deployedMarketplace.getCourseAuthorRewardPercentage(courseAuthorAccount.address);
 
         //calculation of funds to send
@@ -171,15 +171,15 @@ describe("Marketplace contract test", function () {
         var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
 
         //split funds calculation
-        const fundsValuetoBeSentToCourseOwner = valueToSend
-            .mul(courseOwnerRewardPercentage)
+        const fundsValuetoBeSentToCourseAuthor = valueToSend
+            .mul(courseAuthorRewardPercentage)
             .div(100);
 
-        const contractPercentage = 100 - Number(courseOwnerRewardPercentage);
+        const contractPercentage = 100 - Number(courseAuthorRewardPercentage);
         const fundsValuetoBeSentToContract = valueToSend.mul(contractPercentage).div(100);
 
-        const courseOwnerBeforePurchaseBalance = await deployedMarketplace.provider.getBalance(
-            courseOwnerDataAddr
+        const courseAuthorBeforePurchaseBalance = await deployedMarketplace.provider.getBalance(
+            courseAuthorDataAddr
         );
         const contractBeforePurchaseBalance = await deployedMarketplace.provider.getBalance(
             deployedMarketplace.address
@@ -201,8 +201,8 @@ describe("Marketplace contract test", function () {
         );
 
         //compare before/after balances
-        const courseOwnerAfterBalance = await deployedMarketplace.provider.getBalance(
-            courseOwnerDataAddr
+        const courseAuthorAfterBalance = await deployedMarketplace.provider.getBalance(
+            courseAuthorDataAddr
         );
         const contractAfterBalance = await deployedMarketplace.provider.getBalance(
             deployedMarketplace.address
@@ -212,13 +212,13 @@ describe("Marketplace contract test", function () {
             fundsValuetoBeSentToContract
         );
 
-        const expectedCourseOwnerAfterBalance = courseOwnerBeforePurchaseBalance.add(
-            fundsValuetoBeSentToCourseOwner
+        const expectedCourseAuthorAfterBalance = courseAuthorBeforePurchaseBalance.add(
+            fundsValuetoBeSentToCourseAuthor
         );
 
         assert(
-            courseOwnerAfterBalance.eq(expectedCourseOwnerAfterBalance),
-            `${courseOwnerRewardPercentage}% of the sale should be credited to the course author`
+            courseAuthorAfterBalance.eq(expectedCourseAuthorAfterBalance),
+            `${courseAuthorRewardPercentage}% of the sale should be credited to the course author`
         );
         assert(
             contractAfterBalance.eq(expectedContractAfterBalance),
@@ -367,10 +367,10 @@ describe("Marketplace contract test", function () {
             .connect(fakeAuthorAccount)
             .changeCourseAuthorAddress(newfakeAuthorAccount.address);
 
-        const courseOwnerRewardPercentage =
+        const courseAuthorRewardPercentage =
             await deployedMarketplace.getCourseAuthorRewardPercentage(newfakeAuthorAccount.address);
 
-        assert.equal(courseOwnerRewardPercentage, rewardPercentage);
+        assert.equal(courseAuthorRewardPercentage, rewardPercentage);
     });
 
     it("Transfer marketplace ownership", async () => {

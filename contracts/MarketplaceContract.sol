@@ -220,11 +220,11 @@ contract Marketplace {
         CourseAuthor memory existingOwner = allCourseAuthors[courseAuthorAddress];
         if (existingOwner._address != address(0)) revert Marketplace__CourseAuthorAlreadyExist();
 
-        CourseAuthor memory courseOwner = CourseAuthor({
+        CourseAuthor memory courseAuthor = CourseAuthor({
             _address: courseAuthorAddress,
             rewardPercentage: rewardPercentage
         });
-        allCourseAuthors[courseAuthorAddress] = courseOwner;
+        allCourseAuthors[courseAuthorAddress] = courseAuthor;
         emit CourseAuthorAdded(courseAuthorAddress);
     }
 
@@ -318,17 +318,17 @@ contract Marketplace {
      1. The course author is funded with a negotiated reward % of the course price
      2. The rest left goes to the marketplace contract
      */
-    function splitAmount(CourseAuthor memory courseOwner, uint256 amount) private {
+    function splitAmount(CourseAuthor memory courseAuthor, uint256 amount) private {
         /**
          * @param uint Amount to transfer (in Wei)
          */
-        uint256 courseAuthorAmount = amount.mul(courseOwner.rewardPercentage).div(100);
+        uint256 courseAuthorAmount = amount.mul(courseAuthor.rewardPercentage).div(100);
         uint256 contractOwnerAmount = amount - courseAuthorAmount;
 
         //Transfer funds to course author
-        (bool successTransferCourseAuthor, ) = courseOwner._address.call{value: courseAuthorAmount}(
-            ""
-        );
+        (bool successTransferCourseAuthor, ) = courseAuthor._address.call{
+            value: courseAuthorAmount
+        }("");
         if (!successTransferCourseAuthor) revert Marketplace__TransferFundsFailed();
 
         //Tranfer the rest to contract
