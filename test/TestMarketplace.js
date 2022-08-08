@@ -143,6 +143,22 @@ describe("Marketplace contract test", function () {
         assert.equal(hasCourseAlreadyBeenBought, false);
     });
 
+    it("For a given course author, buying his/her own published course should fail with following error: CannotPurchaseOwnCourse()", async () => {
+        const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
+
+        //calculation of funds to send
+        var ethExchangeRate = 0.0008642427880341;
+        var finalPriceEth = coursePrice.toNumber() * ethExchangeRate;
+        var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
+
+        //purchase course with the author account
+        await expect(
+            deployedMarketplace.connect(courseAuthorAccount).purchaseCourse(courseId, {
+                value: valueToSend,
+            })
+        ).to.be.revertedWith("Marketplace__CannotPurchaseOwnCourse");
+    });
+
     it("Purchase a course and check if both course author and contract owner have received the money according the reward percentage previously negotiated", async () => {
         const coursePrice = await deployedMarketplace.getCoursePrice(courseId);
         const courseOwnerDataAddr = courseAuthorAccount.address;
@@ -269,7 +285,7 @@ describe("Marketplace contract test", function () {
         var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
 
         await expect(
-            deployedMarketplace.connect(courseAuthorAccount).purchaseCourse(courseId, {
+            deployedMarketplace.connect(buyerAccount).purchaseCourse(courseId, {
                 value: valueToSend,
             })
         ).to.be.revertedWith("Marketplace__CourseMustBeActivated");

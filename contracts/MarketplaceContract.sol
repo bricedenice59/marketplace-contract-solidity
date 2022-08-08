@@ -16,6 +16,7 @@ error Marketplace__CourseDoesAlreadyExist();
 error Marketplace__CourseMustBeActivated();
 error Marketplace__CourseIsAlreadyDeactivated();
 error Marketplace__CourseIsAlreadyActivated();
+error Marketplace__CannotPurchaseOwnCourse();
 
 //common error with funds transfer/withdrawal
 error Marketplace__InsufficientFunds();
@@ -93,9 +94,13 @@ contract Marketplace {
 
     // Modifier
     /**
-     * Prevents a course to be puchased if not activated yet
+     * Prevents a course to be purchased logic
      */
     modifier canPurchaseCourse(bytes32 courseId) {
+        //prevents an author to buy any of his/her own courses
+        Course memory course = allCourses[courseId];
+        if (course.author._address == msg.sender) revert Marketplace__CannotPurchaseOwnCourse();
+
         //check the status of the course set by the course author
         CourseAuthorCoursesStatus memory courseStatus = allCourseAuthorsCoursesStatus[courseId];
         if (courseStatus.availability == CourseAvailabilityEnum.Deactivated)
