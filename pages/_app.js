@@ -1,5 +1,6 @@
 import { NotificationProvider } from "web3uikit";
 import { MoralisProvider } from "react-moralis";
+import ContractContextProvider from "store/contract-context";
 import "@styles/globals.css";
 
 function MyApp({ Component, pageProps }) {
@@ -7,11 +8,13 @@ function MyApp({ Component, pageProps }) {
     return (
         <>
             <MoralisProvider initializeOnMount={false}>
-                <Layout>
-                    <NotificationProvider>
-                        <Component {...pageProps} />
-                    </NotificationProvider>
-                </Layout>
+                <NotificationProvider>
+                    <ContractContextProvider.ContractContextProvider>
+                        <Layout>
+                            <Component {...pageProps} />
+                        </Layout>
+                    </ContractContextProvider.ContractContextProvider>
+                </NotificationProvider>
             </MoralisProvider>
         </>
     );

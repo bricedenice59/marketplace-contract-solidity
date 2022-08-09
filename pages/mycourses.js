@@ -1,60 +1,49 @@
 import { BaseLayout } from "@components/ui/layout";
-import { useWeb3Contract, useMoralis } from "react-moralis";
-import { contractAddresses, contractAbi } from "../contracts_constants/index";
-import { useEffect, useState } from "react";
+import { useMoralis } from "react-moralis";
+import { useEffect, useState, useContext } from "react";
 import { CourseListComponent } from "@components/ui/course/index";
+import Web3Context from "store/contract-context";
 
 export default function Course() {
-    const { chainId, isWeb3Enabled, account } = useMoralis();
-    const { runContractFunction } = useWeb3Contract();
+    const web3Context = useContext(Web3Context.Web3Context);
+    const { account } = useMoralis();
     const [listOfCoursesForAuthor, setlistOfCoursesForAuthor] = useState([]);
-
-    function isChainIdSupported(chainIdParam) {
-        return chainIdParam in contractAddresses;
-    }
-
-    function getDeployedAddress() {
-        var chainIdStr = parseInt(chainId).toString();
-        if (isChainIdSupported(chainIdStr)) {
-            return contractAddresses[chainIdStr][0];
-        }
-        return null;
-    }
 
     const fetchAuthorCourses = async () => {
         var allCoursesPublished;
-
-        const options = {
-            abi: contractAbi,
-            contractAddress: getDeployedAddress(),
-            functionName: "getCourseAuthorPublishedCourses",
-            params: { authorAddress: account },
-        };
-
-        try {
-            allCoursesPublished = await runContractFunction({
-                params: options,
-            });
-        } catch (error) {}
+        if (web3Context.contract) {
+            try {
+                allCoursesPublished = await web3Context.contract.getCourseAuthorPublishedCourses(
+                    account
+                );
+            } catch (error) {}
+        }
 
         if (!allCoursesPublished) return [];
         return allCoursesPublished;
     };
 
+    async function DoFetchAuthorPublishedCourses() {
+        const authorCourses = await fetchAuthorCourses();
+        setlistOfCoursesForAuthor(authorCourses);
+    }
+
     useEffect(() => {
-        if (isWeb3Enabled) {
-            async function DoFetch() {
-                const authorCourses = await fetchAuthorCourses();
-                setlistOfCoursesForAuthor(authorCourses);
-            }
-            DoFetch();
+        if (web3Context && web3Context.isWeb3Enabled) {
+            DoFetchAuthorPublishedCourses();
         }
     }, [account]);
 
+    useEffect(() => {
+        if (web3Context && web3Context.isWeb3Enabled) {
+            DoFetchAuthorPublishedCourses();
+        }
+    }, [web3Context]);
+
     return (
         <div>
-            {isWeb3Enabled ? (
-                getDeployedAddress() != null ? (
+            {web3Context && web3Context.isWeb3Enabled ? (
+                web3Context.isChainSupported ? (
                     <div className="py-10">
                         <section className="grid grid-cols-2 gap-6 mb-5">
                             {listOfCoursesForAuthor.map((id, i) => (
@@ -66,7 +55,6 @@ export default function Course() {
                                 </div>
                             ))}
                         </section>
-                        {/* <CourseListComponent listCourseIds={listOfCoursesForAuthor} /> */}
                     </div>
                 ) : (
                     <div></div>

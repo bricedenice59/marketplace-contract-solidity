@@ -1,25 +1,14 @@
-import { useWeb3Contract, useMoralis, ethers } from "react-moralis";
-import { contractAddresses, contractAbi } from "@contractConstants/index";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext } from "react";
+import { useNotification } from "web3uikit";
+import Web3Context from "store/contract-context";
 
 export default function CourseStatusComponent({ courseId }) {
-    const { chainId, isWeb3Enabled } = useMoralis();
-    const { runContractFunction } = useWeb3Contract();
+    const web3Context = useContext(Web3Context.Web3Context);
     const [status, setStatus] = useState(0);
     const [isFetching, setIsFetching] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
-    function isChainIdSupported(chainIdParam) {
-        return chainIdParam in contractAddresses;
-    }
-
-    function getDeployedAddress() {
-        var chainIdStr = parseInt(chainId).toString();
-        if (isChainIdSupported(chainIdStr)) {
-            return contractAddresses[chainIdStr][0];
-        }
-        return null;
-    }
+    const dispatch = useNotification();
 
     function SetButtonTextState() {
         if (isFetching) return "Loading...";
@@ -35,65 +24,90 @@ export default function CourseStatusComponent({ courseId }) {
         if (txResult.status == 1) {
             const courseStatus = await fetchCourseAuthorStatus();
             setStatus(courseStatus);
+            handleNotificationActivateDeactivateCompleted(txResult);
         }
-        setIsProcessing(false);
+    };
+
+    const handleNotificationActivateDeactivateCompleted = (tx) => {
+        dispatch({
+            type: "info",
+            message: "Course " + status == 0 ? "activated" : "deactivated",
+            title: "Confirmation",
+            position: "topR",
+            icon: "bell",
+        });
     };
 
     const activateDeactivateCourse = async () => {
-        const options = {
-            abi: contractAbi,
-            contractAddress: getDeployedAddress(),
-            functionName: status == 0 ? "deactivateCourse" : "activateCourse",
-            params: { courseId: courseId },
-        };
+        var tx;
+        var gasPrice;
+        if (!web3Context.contract || !web3Context.provider) return;
+
         setIsProcessing(true);
-        await runContractFunction({
-            params: options,
-            onSuccess: (tx) => handleSuccessTxActivateDeactivate(tx),
-            onError: (error) => {
+        try {
+            gasPrice = await web3Context.provider.getGasPrice();
+        } catch (error) {
+            console.log(error);
+        }
+
+        if (status == 0) {
+            try {
+                tx = await web3Context.contract.deactivateCourse(courseId, {
+                    gasLimit: 2100000,
+                    gasPrice: gasPrice,
+                });
+            } catch (error) {
                 console.log(error);
-                setIsProcessing(false);
-            },
-        });
+            }
+        } else {
+            try {
+                tx = await web3Context.contract.activateCourse(courseId, {
+                    gasLimit: 2100000,
+                    gasPrice: gasPrice,
+                });
+            } catch (error) {
+                console.log(error);
+            }
+        }
+        if (tx) await handleSuccessTxActivateDeactivate(tx);
+        setIsProcessing(false);
     };
 
     const fetchCourseAuthorStatus = async () => {
         var courseStatus = 1;
-
-        const options = {
-            abi: contractAbi,
-            contractAddress: getDeployedAddress(),
-            functionName: "getCourseStatus",
-            params: { courseId: courseId },
-        };
 
         // from contract :
         // enum CourseAvailabilityEnum {
         //   Activated, => 0
         //   Deactivated => 1
         // }
-        try {
-            courseStatus = await runContractFunction({
-                params: options,
-            });
-        } catch (error) {
-            console.log(error);
+        if (web3Context.contract) {
+            try {
+                courseStatus = await web3Context.contract.getCourseStatus(courseId);
+            } catch (error) {}
         }
 
         return parseInt(courseStatus);
     };
 
+    async function DoFetchCourseStatus() {
+        setIsFetching(true);
+        const courseStatus = await fetchCourseAuthorStatus();
+        setStatus(courseStatus);
+        setIsFetching(false);
+    }
+
     useEffect(() => {
-        if (isWeb3Enabled) {
-            async function DoFetch() {
-                setIsFetching(true);
-                const courseStatus = await fetchCourseAuthorStatus();
-                setStatus(courseStatus);
-                setIsFetching(false);
-            }
-            DoFetch();
+        if (web3Context && web3Context.isWeb3Enabled) {
+            DoFetchCourseStatus();
         }
     }, []);
+
+    useEffect(() => {
+        if (web3Context && web3Context.isWeb3Enabled) {
+            DoFetchCourseStatus();
+        }
+    }, [web3Context]);
 
     return (
         <button
