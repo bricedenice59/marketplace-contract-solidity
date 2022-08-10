@@ -105,7 +105,6 @@ export default function CourseStatusComponent({ courseId, statusParam }) {
         try {
             courseStatus = parseInt(statusParam);
         } catch (error) {}
-        //console.log(`${courseId} : ${_status}`);
         setStatus(courseStatus);
     });
 

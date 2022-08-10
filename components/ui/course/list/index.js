@@ -1,5 +1,6 @@
 const { getAllCourses } = require("@content/courses/fetcher");
 import { CourseStatusComponent } from "@components/ui/course/index";
+import { EthPriceDisplayComponent } from "@components/ui/web3/index";
 const allCourses = getAllCourses().data;
 
 export default function CourseListComponent({ courseId, courseStatus, shouldDisplayStatus }) {
@@ -20,6 +21,7 @@ export default function CourseListComponent({ courseId, courseStatus, shouldDisp
                     {node.title}
                 </a>
                 <p className="mt-2 text-gray-500">{node.description}</p>
+                <EthPriceDisplayComponent coursePrice={node.price} />
             </div>
             {shouldDisplayStatus ? (
                 <div className="p-8">

@@ -1,22 +1,39 @@
-export default function EthPriceDisplay() {
-  return (
-    <div className="grid grid-cols-4 mb-5">
-      <div className="flex flex-1 items-stretch text-center">
-        <div className="p-10 border drop-shadow rounded-md">
-          <div>
-            <span className="text-2xl font-bold">ETH = 3145.1$</span>
-          </div>
-          <p className="text-xl text-gray-500">Current eth Price</p>
+import { useEffect, useState, useContext } from "react";
+import EthPriceContext from "store/price-change-context";
+import { getItemEthPrice } from "utils/EthPriceCoingecko";
+
+export default function EthPriceDisplayComponent({ coursePrice }) {
+    const priceContext = useContext(EthPriceContext.EthPriceContext);
+    const [priceItemETH, setPriceItemETH] = useState(0);
+    const [priceItemFiat, setPriceItemFiat] = useState(0);
+
+    useEffect(() => {
+        function getPriceData() {
+            var baseEthPrice = priceContext?.ethPrice;
+            var itemPrice = getItemEthPrice(coursePrice, baseEthPrice);
+            setPriceItemETH(itemPrice);
+        }
+        getPriceData();
+    }, [priceContext?.ethPrice]);
+
+    useEffect(() => {
+        var baseEthPrice = priceContext?.ethPrice;
+        var itemPrice = getItemEthPrice(coursePrice, baseEthPrice);
+        setPriceItemFiat((itemPrice * baseEthPrice).toFixed(2));
+    }, []);
+
+    return (
+        <div className="grid">
+            <div className="flex flex-1 items-stretch text-center">
+                <div className="p-10 border drop-shadow rounded-md">
+                    <p className="text-xl text-gray-500">Price course</p>
+                    <div>
+                        <span className="text-2xl font-bold">
+                            {priceItemETH} = {priceItemFiat}$
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
-      </div>
-      <div className="flex flex-1 items-stretch text-center">
-        <div className="p-10 border drop-shadow rounded-md">
-          <div>
-            <span className="text-2xl font-bold">0.004769 = 15$</span>
-          </div>
-          <p className="text-xl text-gray-500">Price per course</p>
-        </div>
-      </div>
-    </div>
-  );
+    );
 }

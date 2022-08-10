@@ -1,6 +1,7 @@
 import { NotificationProvider } from "web3uikit";
 import { MoralisProvider } from "react-moralis";
 import ContractContextProvider from "store/contract-context";
+import EthPriceContextProvider from "store/price-change-context";
 import "@styles/globals.css";
 
 function MyApp({ Component, pageProps }) {
@@ -10,9 +11,11 @@ function MyApp({ Component, pageProps }) {
             <MoralisProvider initializeOnMount={false}>
                 <NotificationProvider>
                     <ContractContextProvider.ContractContextProvider>
-                        <Layout>
-                            <Component {...pageProps} />
-                        </Layout>
+                        <EthPriceContextProvider.EthPriceContextProvider>
+                            <Layout>
+                                <Component {...pageProps} />
+                            </Layout>
+                        </EthPriceContextProvider.EthPriceContextProvider>
                     </ContractContextProvider.ContractContextProvider>
                 </NotificationProvider>
             </MoralisProvider>

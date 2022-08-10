@@ -25,7 +25,6 @@ export default function Course() {
 
     async function DoFetchAuthorPublishedCourses() {
         const authorCourses = await fetchAuthorCourses();
-        console.log(authorCourses);
         setlistOfCoursesForAuthor(authorCourses);
     }
 
