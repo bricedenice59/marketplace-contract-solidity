@@ -2,7 +2,7 @@ import { useEffect, useState, useContext } from "react";
 import { useNotification } from "web3uikit";
 import Web3Context from "store/contract-context";
 
-export default function CourseStatusComponent({ courseId }) {
+export default function CourseStatusComponent({ courseId, statusParam }) {
     const web3Context = useContext(Web3Context.Web3Context);
     const [status, setStatus] = useState(0);
     const [isFetching, setIsFetching] = useState(false);
@@ -22,7 +22,7 @@ export default function CourseStatusComponent({ courseId }) {
         var txResult = await tx.wait(2);
 
         if (txResult.status == 1) {
-            const courseStatus = await fetchCourseAuthorStatus();
+            const courseStatus = await DoFetchCourseStatusFromBlockchain();
             setStatus(courseStatus);
             handleNotificationActivateDeactivateCompleted(txResult);
         }
@@ -90,7 +90,7 @@ export default function CourseStatusComponent({ courseId }) {
         return parseInt(courseStatus);
     };
 
-    async function DoFetchCourseStatus() {
+    async function DoFetchCourseStatusFromBlockchain() {
         setIsFetching(true);
         const courseStatus = await fetchCourseAuthorStatus();
         setStatus(courseStatus);
@@ -98,16 +98,16 @@ export default function CourseStatusComponent({ courseId }) {
     }
 
     useEffect(() => {
-        if (web3Context && web3Context.isWeb3Enabled) {
-            DoFetchCourseStatus();
-        }
-    }, []);
-
-    useEffect(() => {
-        if (web3Context && web3Context.isWeb3Enabled) {
-            DoFetchCourseStatus();
-        }
-    }, [web3Context]);
+        var courseStatus = 1; // by default if parsing fails, return deactivated
+        // from contract :
+        //activated: 0x000....0;
+        //deactivated: 0x000....1
+        try {
+            courseStatus = parseInt(statusParam);
+        } catch (error) {}
+        //console.log(`${courseId} : ${_status}`);
+        setStatus(courseStatus);
+    });
 
     return (
         <button

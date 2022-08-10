@@ -2,7 +2,7 @@ const { getAllCourses } = require("@content/courses/fetcher");
 import { CourseStatusComponent } from "@components/ui/course/index";
 const allCourses = getAllCourses().data;
 
-export default function CourseListComponent({ courseId }) {
+export default function CourseListComponent({ courseId, courseStatus, shouldDisplayStatus }) {
     var node = allCourses.find((o) => o.id === courseId);
     return (
         <div className="md:flex">
@@ -21,9 +21,13 @@ export default function CourseListComponent({ courseId }) {
                 </a>
                 <p className="mt-2 text-gray-500">{node.description}</p>
             </div>
-            <div className="p-8">
-                <CourseStatusComponent courseId={node.id} />
-            </div>
+            {shouldDisplayStatus ? (
+                <div className="p-8">
+                    <CourseStatusComponent courseId={node.id} statusParam={courseStatus} />
+                </div>
+            ) : (
+                <div></div>
+            )}
         </div>
     );
 }

@@ -25,6 +25,7 @@ export default function Course() {
 
     async function DoFetchAuthorPublishedCourses() {
         const authorCourses = await fetchAuthorCourses();
+        console.log(authorCourses);
         setlistOfCoursesForAuthor(authorCourses);
     }
 
@@ -46,12 +47,16 @@ export default function Course() {
                 web3Context.isChainSupported ? (
                     <div className="py-10">
                         <section className="grid grid-cols-2 gap-6 mb-5">
-                            {listOfCoursesForAuthor.map((id, i) => (
+                            {listOfCoursesForAuthor.map((obj, i) => (
                                 <div
-                                    key={id}
+                                    key={i}
                                     className="bg-white rounded-xl shadow-md overflow-hidden md:max-w-3xl"
                                 >
-                                    <CourseListComponent courseId={id}></CourseListComponent>
+                                    <CourseListComponent
+                                        courseId={obj[0]}
+                                        courseStatus={obj[1]}
+                                        shouldDisplayStatus={true}
+                                    ></CourseListComponent>
                                 </div>
                             ))}
                         </section>
