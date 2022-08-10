@@ -68,17 +68,28 @@ describe("Marketplace contract test", function () {
         //add multiples fake courses
         for (var i = 1; i <= nbFakeCoursesToAdd; i++) {
             const courseId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
-            allCoursesBeingPublished.push(courseId);
-
             await deployedMarketplace.connect(fakeAuthorAccount).addCourse(courseId);
+            allCoursesBeingPublished.push(courseId);
         }
 
         const allPublishedCoursesFromContract =
             await deployedMarketplace.getCourseAuthorPublishedCourses(fakeAuthorAccount.address);
 
-        for (var i = 1; i <= nbFakeCoursesToAdd; i++) {
-            assert.equal(allPublishedCoursesFromContract[i], allCoursesBeingPublished[i]);
+        for (var i = 0; i < nbFakeCoursesToAdd; i++) {
+            //from contract;
+            //index at 0 is the course id
+            //index at 1 is the availability (bytes32)
+            assert.equal(allPublishedCoursesFromContract[i][0], allCoursesBeingPublished[i]);
+            //all courses must be activated; activated=0x000....0; deactivated=0x000....1
+            assert.equal(Number.parseInt(allPublishedCoursesFromContract[i][1]), 0);
         }
+    });
+
+    it("the number of courses stored in the contract should match with courses added in previous tests", async () => {
+        const getAllCoursesArray = await deployedMarketplace.getAllCourses();
+        //1 course added in previous test (Only the course owner can add his own new courses to the contract, it shoud fail if different)
+        //10 courses added in previous test (Retrieves correctly all courses published by a course author)
+        assert.equal(getAllCoursesArray.length, 11);
     });
 
     it("The contract owner cannot publish a course, it should fail with error OnlyCourseAuthor()", async () => {
