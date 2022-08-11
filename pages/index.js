@@ -2,6 +2,8 @@ import { BaseLayout } from "@components/ui/layout";
 import { useMoralis } from "react-moralis";
 import { useEffect, useState, useContext } from "react";
 import { CourseListComponent } from "@components/ui/course/index";
+import { HeroComponent } from "@components/ui/common/index";
+
 import Web3Context from "store/contract-context";
 
 export default function Home() {
@@ -40,6 +42,7 @@ export default function Home() {
 
     return (
         <div>
+            <HeroComponent />
             {web3Context && web3Context.isWeb3Enabled ? (
                 web3Context.isChainSupported ? (
                     <div className="py-10">
@@ -62,7 +65,9 @@ export default function Home() {
                     <div></div>
                 )
             ) : (
-                <div>Please connect an account...</div>
+                <div className="my-28 text-2xl text-center  text-blue-900">
+                    Please connect an account...
+                </div>
             )}
         </div>
     );

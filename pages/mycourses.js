@@ -64,7 +64,9 @@ export default function Course() {
                     <div></div>
                 )
             ) : (
-                <div>Please connect an account...</div>
+                <div className="text-center my-28 text-2xl text-blue-900">
+                    Please connect an account...
+                </div>
             )}
         </div>
     );

@@ -10,7 +10,7 @@ export default function CourseListComponent({ courseId, courseStatus, shouldDisp
     useEffect(() => {
         var thisCourse = allCourses.find((o) => o.id === courseId);
         setCourse(thisCourse);
-    }, []);
+    });
 
     return (
         <div>
