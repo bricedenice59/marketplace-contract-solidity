@@ -1,7 +1,6 @@
 import { NavbarComponent, FooterComponent } from "@components/ui/common";
 import { useContext } from "react";
 import Web3Context from "store/contract-context";
-
 export default function BaseLayout({ children }) {
     const web3Context = useContext(Web3Context.Web3Context);
 

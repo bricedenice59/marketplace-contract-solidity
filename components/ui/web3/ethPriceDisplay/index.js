@@ -23,15 +23,12 @@ export default function EthPriceDisplayComponent({ coursePrice }) {
     }, []);
 
     return (
-        <div className="grid">
-            <div className="flex flex-1 items-stretch text-center">
-                <div className="p-10 border drop-shadow rounded-md">
-                    <p className="text-xl text-gray-500">Price course</p>
-                    <div>
-                        <span className="text-2xl font-bold">
-                            {priceItemETH} = {priceItemFiat}$
-                        </span>
-                    </div>
+        <div>
+            <div className="flex">
+                <img src="/images/eth-icon.png" width="32" height="32" />
+                <div className="text-xl font-bold">
+                    {" "}
+                    {priceItemETH} = ${priceItemFiat}
                 </div>
             </div>
         </div>
