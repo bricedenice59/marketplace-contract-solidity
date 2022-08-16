@@ -1,5 +1,6 @@
 import { ConnectButton } from "web3uikit";
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState, useContext } from "react";
 import EthPriceContext from "store/price-change-context";
 
@@ -43,7 +44,12 @@ export default function Navbar() {
                         <ConnectButton moralisAuth={false} />
 
                         <div className="px-4 flex">
-                            <img src="/images/eth-icon.png" width="32" height="32" />
+                            <Image
+                                src="/images/eth-icon.png"
+                                alt="ethereum"
+                                width="32"
+                                height="32"
+                            />
                             <div className="text-2xl font-bold"> {priceETH}$</div>
                         </div>
                     </div>

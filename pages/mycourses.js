@@ -18,11 +18,7 @@ const allCoursesPublishedByAuthorQuery = `
 export default function Course() {
     const web3Context = useContext(Web3Context.Web3Context);
     const { account } = useMoralis();
-    if (!account) {
-        <div className="text-center my-28 text-2xl text-blue-900">
-            Please connect an account...
-        </div>;
-    }
+
     const query = wformat(allCoursesPublishedByAuthorQuery, { authorId: `${account}` });
     const [res] = useQuery({
         query: query,

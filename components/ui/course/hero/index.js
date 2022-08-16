@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { imgLoader } from "utils/imgLoader";
 
 export default function CourseHeroComponent({ title, description, image, hasOwner }) {
     return (
@@ -57,10 +58,14 @@ export default function CourseHeroComponent({ title, description, image, hasOwne
                     </div>
                 </div>
                 <div className="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
-                    <img
+                    <Image
                         className="h-56 w-full object-cover sm:h-72 md:h-96 lg:w-full lg:h-full"
+                        loader={imgLoader}
                         src={image}
-                        alt={title}
+                        alt="image"
+                        width="600"
+                        height="600"
+                        unoptimized="true"
                     />
                 </div>
             </div>
