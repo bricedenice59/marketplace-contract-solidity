@@ -4,34 +4,26 @@ import Web3Context from "store/contract-context";
 
 export default function CourseStatusComponent({ courseId, statusParam }) {
     const web3Context = useContext(Web3Context.Web3Context);
-    const [status, setStatus] = useState(0);
-    const [isFetching, setIsFetching] = useState(false);
+    const [status, setStatus] = useState(statusParam);
     const [isProcessing, setIsProcessing] = useState(false);
-
     const dispatch = useNotification();
 
     function SetButtonTextState() {
-        if (isFetching) return "Loading...";
-        if (isProcessing && status == 0) return "Deactivating...";
-        if (isProcessing && status == 1) return "Activating...";
-        if (status == 0) return "Deactivate";
+        if (isProcessing && status == "Activated") return "Deactivating...";
+        if (isProcessing && status == "Deactivated") return "Activating...";
+        if (status == "Activated") return "Deactivate";
         return "Activate";
     }
 
-    const handleSuccessTxActivateDeactivate = async (tx) => {
-        var txResult = await tx.wait(2);
-
-        if (txResult.status == 1) {
-            const courseStatus = await DoFetchCourseStatusFromBlockchain();
-            setStatus(courseStatus);
-            handleNotificationActivateDeactivateCompleted(txResult);
-        }
+    const getStatusString = () => {
+        return status == "Activated" ? "Deactivated" : "Activated";
     };
 
     const handleNotificationActivateDeactivateCompleted = (tx) => {
+        const statusToDisplay = getStatusString();
         dispatch({
             type: "info",
-            message: "Course " + status == 0 ? "activated" : "deactivated",
+            message: `Course is now ${statusToDisplay}`,
             title: "Confirmation",
             position: "topR",
             icon: "bell",
@@ -50,7 +42,7 @@ export default function CourseStatusComponent({ courseId, statusParam }) {
             console.log(error);
         }
 
-        if (status == 0) {
+        if (status == "Activated") {
             try {
                 tx = await web3Context.contract.deactivateCourse(courseId, {
                     gasLimit: 2100000,
@@ -69,56 +61,37 @@ export default function CourseStatusComponent({ courseId, statusParam }) {
                 console.log(error);
             }
         }
-        if (tx) await handleSuccessTxActivateDeactivate(tx);
+        if (tx) {
+            var txResult = await tx.wait(2);
+            if (txResult.status == 1) {
+                const newStatus = getStatusString();
+                setStatus(newStatus);
+                statusParam = newStatus;
+                handleNotificationActivateDeactivateCompleted(txResult);
+            }
+        }
         setIsProcessing(false);
     };
 
-    const fetchCourseAuthorStatus = async () => {
-        var courseStatus = 1;
-
-        // from contract :
-        // enum CourseAvailabilityEnum {
-        //   Activated, => 0
-        //   Deactivated => 1
-        // }
-        if (web3Context.contract) {
-            try {
-                courseStatus = await web3Context.contract.getCourseStatus(courseId);
-            } catch (error) {}
-        }
-
-        return parseInt(courseStatus);
-    };
-
-    async function DoFetchCourseStatusFromBlockchain() {
-        setIsFetching(true);
-        const courseStatus = await fetchCourseAuthorStatus();
-        setStatus(courseStatus);
-        setIsFetching(false);
-    }
+    // useEffect(() => {
+    //     console.log(`New course status: ${status} for course: ${courseId}`);
+    // }, [status]);
 
     useEffect(() => {
-        var courseStatus = 1; // by default if parsing fails, return deactivated
-        // from contract :
-        //activated: 0x000....0;
-        //deactivated: 0x000....1
-        try {
-            courseStatus = parseInt(statusParam);
-        } catch (error) {}
-        setStatus(courseStatus);
-    });
+        setStatus(statusParam);
+    }, []);
 
     return (
         <button
             type="button"
             className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:ml-3 sm:w-auto sm:text-sm"
-            disabled={isFetching || isProcessing}
+            disabled={isProcessing}
             onClick={async function () {
                 await activateDeactivateCourse();
             }}
         >
             {SetButtonTextState()}
-            {isFetching || isProcessing ? (
+            {isProcessing ? (
                 <svg
                     className="inline mr-2 w-8 h-8 text-gray-200 animate-spin dark:text-gray-600 fill-blue-600"
                     viewBox="0 0 100 101"

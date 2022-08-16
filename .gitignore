@@ -2,6 +2,7 @@
 
 # dependencies
 /node_modules
+/graph-marketplace/node_modules
 /.pnp
 .pnp.js
 
@@ -35,4 +36,5 @@ cache/*
 .env.development
 deployments/*
 slither-results.json
+
 

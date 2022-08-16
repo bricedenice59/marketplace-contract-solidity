@@ -3,6 +3,16 @@ import { useMoralis } from "react-moralis";
 import { useEffect, useState, useContext } from "react";
 import { CourseListComponent } from "@components/ui/course/index";
 import Web3Context from "store/contract-context";
+import { wformat } from "utils/stringutils";
+
+const allCoursesPublishedByAuthorQuery = `
+    query getCourseItems{
+        courseItems(where: { author_: {address: "%authorAddress"}})  {
+            id
+            status
+        }
+    }
+`;
 
 export default function Course() {
     const web3Context = useContext(Web3Context.Web3Context);
@@ -11,11 +21,13 @@ export default function Course() {
 
     const fetchAuthorCourses = async () => {
         var allCoursesPublished;
-        if (web3Context.contract) {
+        if (web3Context.graphQLClient) {
             try {
-                allCoursesPublished = await web3Context.contract.getCourseAuthorPublishedCourses(
-                    account
-                );
+                const query = wformat(allCoursesPublishedByAuthorQuery, {
+                    authorAddress: `${account}`,
+                });
+                const data = await web3Context.graphQLClient.query(query).toPromise();
+                allCoursesPublished = data.data.courseItems;
             } catch (error) {}
         }
 
@@ -52,8 +64,8 @@ export default function Course() {
                                     className="bg-white rounded-xl shadow-md overflow-hidden md:max-w-3xl"
                                 >
                                     <CourseListComponent
-                                        courseId={obj[0]}
-                                        courseStatus={obj[1]}
+                                        courseId={obj.id}
+                                        courseStatus={obj.status}
                                         shouldDisplayStatus={true}
                                     ></CourseListComponent>
                                 </div>

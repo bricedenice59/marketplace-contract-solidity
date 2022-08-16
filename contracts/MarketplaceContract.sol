@@ -52,6 +52,7 @@ contract Marketplace {
     }
 
     struct CourseAuthor {
+        bytes32 id;
         address _address; //An author may (have to)/change account address
         uint8 rewardPercentage; //A course author negotiates to earn a percentage of his course proposed price
     }
@@ -61,8 +62,6 @@ contract Marketplace {
         CourseAuthor author;
         PurchaseStatus purchaseStatus;
     }
-
-    bytes32[] private s_allCoursesIds;
 
     //list of all courses stored in this contract
     mapping(bytes32 => Course) public s_allCourses;
@@ -83,13 +82,13 @@ contract Marketplace {
     }
 
     /* events */
-    event CourseAuthorAdded(address indexed author);
-    event CourseAdded(bytes32 indexed courseId);
-    event CoursePurchased(bytes32 indexed courseId);
+    event CourseAuthorAdded(bytes32 indexed courseAuthorId, address indexed author);
+    event CourseAdded(bytes32 indexed courseId, bytes32 indexed courseAuthorId);
+    event CoursePurchased(bytes32 indexed courseId, address indexed buyer);
     event CourseActivated(bytes32 indexed courseId);
     event CourseDeactivated(bytes32 indexed courseId);
     event WithdrawFunds(address indexed toAddress, bool indexed success);
-    event CourseAuthorAddressChanged();
+    event CourseAuthorAddressChanged(address indexed previousAddress, address indexed newAddress);
 
     // Modifier
     /**
@@ -195,36 +194,39 @@ contract Marketplace {
         CourseAuthor storage existingAuthor = s_allCourseAuthors[msg.sender];
         if (newAddress == existingAuthor._address) revert Marketplace__CourseAuthorAddressIsSame();
 
+        address previousAddress = existingAuthor._address;
         existingAuthor._address = newAddress;
         s_allCourseAuthors[newAddress] = existingAuthor;
 
-        bytes32[2][] memory courses = getCourseAuthorPublishedCourses(msg.sender);
+        bytes32[] memory courses = getCourseAuthorPublishedCourses(msg.sender);
         for (uint32 i = 0; i < courses.length; i++) {
-            Course storage course = s_allCourses[courses[i][0]];
+            Course storage course = s_allCourses[courses[i]];
             course.author._address = newAddress;
         }
-        emit CourseAuthorAddressChanged();
+        emit CourseAuthorAddressChanged(previousAddress, newAddress);
     }
 
     // Function
     /**
      * Add a new course author with his negotiated reward percentage
      */
-    function addCourseAuthor(address courseAuthorAddress, uint8 rewardPercentage)
-        external
-        onlyContractOwner
-    {
+    function addCourseAuthor(
+        bytes32 courseAuthorId,
+        address courseAuthorAddress,
+        uint8 rewardPercentage
+    ) external onlyContractOwner {
         if (rewardPercentage > 100) revert Marketplace__CourseAuthorRewardPercentageOutOfBound();
 
         CourseAuthor memory existingOwner = s_allCourseAuthors[courseAuthorAddress];
         if (existingOwner._address != address(0)) revert Marketplace__CourseAuthorAlreadyExist();
 
         CourseAuthor memory courseAuthor = CourseAuthor({
+            id: courseAuthorId,
             _address: courseAuthorAddress,
             rewardPercentage: rewardPercentage
         });
         s_allCourseAuthors[courseAuthorAddress] = courseAuthor;
-        emit CourseAuthorAdded(courseAuthorAddress);
+        emit CourseAuthorAdded(courseAuthorId, courseAuthorAddress);
     }
 
     // Function
@@ -239,7 +241,6 @@ contract Marketplace {
         });
 
         s_allCourses[id] = course;
-        s_allCoursesIds.push(id);
 
         //activate the course by default
         CourseAuthorCoursesStatus memory AuthorCourseStatus = CourseAuthorCoursesStatus({
@@ -251,7 +252,7 @@ contract Marketplace {
         //finally, add the course to the list of published courses for the current author
         s_allCourseAuthorsPublishedCourses[msg.sender].push(course);
 
-        emit CourseAdded(id);
+        emit CourseAdded(id, course.author.id);
     }
 
     // Function
@@ -351,7 +352,7 @@ contract Marketplace {
             course.author = s_allCourseAuthors[course.author._address];
             s_customerOwnedCourses[msg.sender].push(course);
 
-            emit CoursePurchased(courseId);
+            emit CoursePurchased(courseId, msg.sender);
             splitAmount(course.author, msg.value);
 
             return;
@@ -379,43 +380,6 @@ contract Marketplace {
 
     // Function
     /**
-     * For a given address, returns all bought courses
-     */
-    function getUserBoughtCoursesIds(address _address) external view returns (bytes32[] memory) {
-        uint32 resultCount = 0;
-
-        Course[] memory owned = s_customerOwnedCourses[_address];
-        if (owned.length == 0) return new bytes32[](resultCount);
-
-        for (uint32 i = 0; i < owned.length; i++) {
-            if (owned[i].purchaseStatus == PurchaseStatus.Purchased) resultCount++;
-        }
-
-        bytes32[] memory ids = new bytes32[](resultCount);
-        uint256 j = 0;
-        for (uint256 i = 0; i < owned.length; i++) {
-            if (owned[i].purchaseStatus == PurchaseStatus.Purchased) {
-                ids[j] = owned[i].id;
-                j++;
-            }
-        }
-
-        return ids;
-    }
-
-    function getCourseAuthorRewardPercentage(address _address)
-        external
-        view
-        returns (uint8 rewardPercentage)
-    {
-        CourseAuthor memory existingAuthor = s_allCourseAuthors[_address];
-        if (existingAuthor._address == address(0)) revert Marketplace__CourseAuthorDoesNotExist();
-
-        return existingAuthor.rewardPercentage;
-    }
-
-    // Function
-    /**
      * For a given course id, returns a course object
      */
     function getCourseFromId(bytes32 courseId)
@@ -429,37 +393,23 @@ contract Marketplace {
 
     // Function
     /**
-     * For a given author address, returns a 2 dimensional array object
-     * Returned object is
-     * 1. a course ID
-     * 2. its availability (activated/deactivated)
+     * For a given author address, returns a list of course object
      */
     function getCourseAuthorPublishedCourses(address authorAddress)
         public
         view
-        returns (bytes32[2][] memory courses)
+        returns (bytes32[] memory courses)
     {
         if (s_allCourseAuthors[authorAddress]._address == address(0))
             revert Marketplace__CourseAuthorDoesNotExist();
 
         Course[] memory publishedCourses = s_allCourseAuthorsPublishedCourses[authorAddress];
-        bytes32[2][] memory return_publishedCourses = new bytes32[2][](publishedCourses.length);
-
+        bytes32[] memory ids = new bytes32[](publishedCourses.length);
+        uint256 j;
         for (uint256 i = 0; i < publishedCourses.length; i++) {
-            bytes32 courseId = publishedCourses[i].id;
-            CourseAvailabilityEnum courseAvailabilityStatus = getCourseStatus(courseId);
-
-            uint256 status = (courseAvailabilityStatus == CourseAvailabilityEnum.Activated ? 0 : 1);
-            return_publishedCourses[i] = [courseId, bytes32(status)];
+            ids[j] = publishedCourses[i].id;
+            j++;
         }
-        return return_publishedCourses;
-    }
-
-    // Function
-    /**
-     * Returns all courses ids stored in contract
-     */
-    function getAllCourses() external view returns (bytes32[] memory courses) {
-        return s_allCoursesIds;
+        return ids;
     }
 }

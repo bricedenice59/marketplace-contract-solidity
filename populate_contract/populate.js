@@ -1,6 +1,7 @@
 const { getNamedAccounts, network, ethers } = require("hardhat");
 const { contractAddresses } = require("../contracts_constants/index");
 const { getAllParsedCoursesForContractUse } = require("../content/courses/fetcher");
+const { utils } = require("ethers");
 
 function getRandomInt(min, max) {
     min = Math.ceil(min);
@@ -42,11 +43,13 @@ async function main() {
     for (let i = 1; i < accounts.length; i++) {
         //i = 1 because account 0 is the deployer and we don't want the deployer to addcourse, it will anyway ends up in a reverted tx
         const address = accounts[i].address;
+        const courseAuthorId = utils.keccak256(utils.toUtf8Bytes(address));
         const rewardPercentage = getRandomInt(80, 95);
         console.log(
             `Adding course author ${address}; ${rewardPercentage}% funded to his/her account for every sold courses`
         );
         const txAddCourseAuthor = await deployedMarketplace.addCourseAuthor(
+            courseAuthorId,
             address,
             rewardPercentage,
             { from: deployer }
