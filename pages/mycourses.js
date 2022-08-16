@@ -1,13 +1,14 @@
 import { BaseLayout } from "@components/ui/layout";
 import { useMoralis } from "react-moralis";
-import { useEffect, useState, useContext } from "react";
+import { useContext } from "react";
 import { CourseListComponent } from "@components/ui/course/index";
 import Web3Context from "store/contract-context";
+import { useQuery } from "urql";
 import { wformat } from "utils/stringutils";
 
 const allCoursesPublishedByAuthorQuery = `
     query getCourseItems{
-        courseItems(where: { author_: {address: "%authorAddress"}})  {
+        courseItems(where: { author_: {address: "%authorId"}})  {
             id
             status
         }
@@ -17,40 +18,27 @@ const allCoursesPublishedByAuthorQuery = `
 export default function Course() {
     const web3Context = useContext(Web3Context.Web3Context);
     const { account } = useMoralis();
-    const [listOfCoursesForAuthor, setlistOfCoursesForAuthor] = useState([]);
-
-    const fetchAuthorCourses = async () => {
-        var allCoursesPublished;
-        if (web3Context.graphQLClient) {
-            try {
-                const query = wformat(allCoursesPublishedByAuthorQuery, {
-                    authorAddress: `${account}`,
-                });
-                const data = await web3Context.graphQLClient.query(query).toPromise();
-                allCoursesPublished = data.data.courseItems;
-            } catch (error) {}
-        }
-
-        if (!allCoursesPublished) return [];
-        return allCoursesPublished;
-    };
-
-    async function DoFetchAuthorPublishedCourses() {
-        const authorCourses = await fetchAuthorCourses();
-        setlistOfCoursesForAuthor(authorCourses);
+    if (!account) {
+        <div className="text-center my-28 text-2xl text-blue-900">
+            Please connect an account...
+        </div>;
     }
+    const query = wformat(allCoursesPublishedByAuthorQuery, { authorId: `${account}` });
+    const [res] = useQuery({
+        query: query,
+    });
 
-    useEffect(() => {
-        if (web3Context && web3Context.isWeb3Enabled) {
-            DoFetchAuthorPublishedCourses();
-        }
-    }, [account]);
+    if (res.fetching)
+        return <div className="text-center my-28 text-2xl text-blue-900">Loading...</div>;
+    if (res.error)
+        return <div className="text-center my-28 text-2xl text-blue-900">{error.message}</div>;
 
-    useEffect(() => {
-        if (web3Context && web3Context.isWeb3Enabled) {
-            DoFetchAuthorPublishedCourses();
-        }
-    }, [web3Context]);
+    if (!res.data || res.data.courseItems.length == 0)
+        return (
+            <div className="text-center my-28 text-2xl text-blue-900">
+                Could not find any course published yet...
+            </div>
+        );
 
     return (
         <div>
@@ -58,14 +46,14 @@ export default function Course() {
                 web3Context.isChainSupported ? (
                     <div className="py-10">
                         <section className="grid grid-cols-2 gap-6 mb-5">
-                            {listOfCoursesForAuthor.map((obj, i) => (
+                            {res.data.courseItems.map((_, i) => (
                                 <div
                                     key={i}
                                     className="bg-white rounded-xl shadow-md overflow-hidden md:max-w-3xl"
                                 >
                                     <CourseListComponent
-                                        courseId={obj.id}
-                                        courseStatus={obj.status}
+                                        courseId={res.data.courseItems[i].id}
+                                        courseStatus={res.data.courseItems[i].status}
                                         shouldDisplayStatus={true}
                                     ></CourseListComponent>
                                 </div>

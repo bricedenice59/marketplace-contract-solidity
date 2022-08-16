@@ -1,9 +1,6 @@
 import { createContext, useState, useEffect } from "react";
 import { useMoralis } from "react-moralis";
 import { contractAddresses, contractAbi } from "@contractConstants/index";
-import { createClient } from "urql";
-
-const THEGRAPH_API_URL = process.env.NEXT_PUBLIC_THEGRAPH_API_URL;
 
 const Web3Context = createContext({
     isWeb3Enabled: false,
@@ -58,9 +55,6 @@ function ContractContextProvider(props) {
             provider: data._provider,
             chain: chainId,
             isChainSupported: chainId ? isChainIdSupported(parseInt(chainId).toString()) : false,
-            graphQLClient: (chainId ? isChainIdSupported(parseInt(chainId).toString()) : false)
-                ? createClient({ url: THEGRAPH_API_URL })
-                : null,
         });
     }, [chainId]);
 
