@@ -7,7 +7,12 @@ import { imgLoader } from "utils/imgLoader";
 import { useState, useEffect } from "react";
 const allCourses = getAllCourses().data;
 
-export default function CourseListComponent({ courseId, courseStatus, shouldDisplayStatus }) {
+export default function CourseListComponent({
+    courseId,
+    courseStatus,
+    shouldDisplayStatus,
+    shouldDisplayPrice,
+}) {
     const [course, setCourse] = useState(null);
     useEffect(() => {
         var thisCourse = allCourses.find((o) => o.id === courseId);
@@ -46,7 +51,11 @@ export default function CourseListComponent({ courseId, courseStatus, shouldDisp
                         <p className="mt-2 py-5 text-gray-500">
                             {course.description?.substring(0, 70)}...
                         </p>
-                        <EthPriceDisplayComponent coursePrice={course.price} />
+                        {shouldDisplayPrice ? (
+                            <EthPriceDisplayComponent coursePrice={course.price} />
+                        ) : (
+                            <div></div>
+                        )}
                     </div>
                     {shouldDisplayStatus ? (
                         <div className="p-8">

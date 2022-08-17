@@ -1,13 +1,16 @@
 import { BaseLayout } from "@components/ui/layout";
 import { useContext } from "react";
+import { useMoralis } from "react-moralis";
 import { CourseListComponent } from "@components/ui/course/index";
 import { HeroComponent } from "@components/ui/common/index";
 import Web3Context from "store/contract-context";
 import { useQuery } from "urql";
+import { wformat } from "utils/stringutils";
 
+//Fetch all courses that are activated and exclude the ones published by the current connected account
 const allCoursesPublishedQuery = `
     query getAllActivatedCourseItems {
-        courseItems(where: { status: "Activated" }) {
+        courseItems(where: { status: "Activated", author_: { address_not: "%connectedAccount" }}) {
             id
         }
     }
@@ -15,14 +18,17 @@ const allCoursesPublishedQuery = `
 
 export default function Home() {
     const web3Context = useContext(Web3Context.Web3Context);
-    const [res] = useQuery({ query: allCoursesPublishedQuery, requestPolicy: "cache-and-network" });
+    const { account } = useMoralis();
+
+    const query = wformat(allCoursesPublishedQuery, { connectedAccount: `${account}` });
+    const [res] = useQuery({ query: query, requestPolicy: "cache-and-network" });
 
     if (res.fetching)
         return <div className="text-center my-28 text-2xl text-blue-900">Loading...</div>;
     if (res.error)
-        return <div className="text-center my-28 text-2xl text-blue-900">{error.message}</div>;
+        return <div className="text-center my-28 text-2xl text-blue-900">{res.error.message}</div>;
     if (!res.data || res.data.courseItems.length == 0)
-        return <div className="text-center my-28 text-2xl text-blue-900">MArketplace empty :)</div>;
+        return <div className="text-center my-28 text-2xl text-blue-900">Marketplace empty :)</div>;
     return (
         <div>
             <HeroComponent />
@@ -38,6 +44,7 @@ export default function Home() {
                                             courseId={res.data.courseItems[i].id}
                                             status={null}
                                             shouldDisplayStatus={false}
+                                            shouldDisplayPrice={true}
                                         ></CourseListComponent>
                                     </div>
                                 </div>

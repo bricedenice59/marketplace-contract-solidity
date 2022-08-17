@@ -6,11 +6,10 @@ import Web3Context from "store/contract-context";
 import { useQuery } from "urql";
 import { wformat } from "utils/stringutils";
 
-const allCoursesPublishedByAuthorQuery = `
-    query getCourseItems{
-        courseItems(where: { author_: {address: "%authorId"}})  {
+const allPurchasedCoursesForCustomerQuery = `
+    query getAllPurchasesForCustomer{
+        purchasedItems(where: {buyer:"%customerAddress"}) {
             id
-            status
         }
     }
 `;
@@ -19,9 +18,10 @@ export default function Course() {
     const web3Context = useContext(Web3Context.Web3Context);
     const { account } = useMoralis();
 
-    const query = wformat(allCoursesPublishedByAuthorQuery, { authorId: `${account}` });
+    const query = wformat(allPurchasedCoursesForCustomerQuery, { customerAddress: `${account}` });
     const [res] = useQuery({
         query: query,
+        requestPolicy: "cache-and-network",
     });
 
     if (res.fetching)
@@ -29,10 +29,10 @@ export default function Course() {
     if (res.error)
         return <div className="text-center my-28 text-2xl text-blue-900">{res.error.message}</div>;
 
-    if (!res.data || res.data.courseItems.length == 0)
+    if (!res.data || res.data.purchasedItems.length == 0)
         return (
             <div className="text-center my-28 text-2xl text-blue-900">
-                Could not find any course published yet...
+                It seems that no course have been purchased yet.
             </div>
         );
 
@@ -42,15 +42,15 @@ export default function Course() {
                 web3Context.isChainSupported ? (
                     <div className="py-10">
                         <section className="grid grid-cols-2 gap-6 mb-5">
-                            {res.data.courseItems.map((_, i) => (
+                            {res.data.purchasedItems.map((_, i) => (
                                 <div
                                     key={i}
                                     className="bg-white rounded-xl shadow-md overflow-hidden md:max-w-3xl"
                                 >
                                     <CourseListComponent
-                                        courseId={res.data.courseItems[i].id}
-                                        courseStatus={res.data.courseItems[i].status}
-                                        shouldDisplayStatus={true}
+                                        courseId={res.data.purchasedItems[i].id}
+                                        courseStatus={res.data.purchasedItems[i].status}
+                                        shouldDisplayStatus={false}
                                         shouldDisplayPrice={false}
                                     ></CourseListComponent>
                                 </div>
