@@ -12,6 +12,7 @@ describe("Marketplace contract test", function () {
     var newcontractOwnerAccount;
 
     var courseId;
+    var courseAuthorId;
     before(async function () {
         deployer = (await getNamedAccounts()).deployer;
 
@@ -31,12 +32,18 @@ describe("Marketplace contract test", function () {
 
         //generate a new course ID
         courseId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
+        //generate a new author ID
+        courseAuthorId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
     });
 
     it("Add a new course author", async () => {
         const rewardPercentage = 90;
 
-        await deployedMarketplace.addCourseAuthor(courseAuthorAccount.address, rewardPercentage);
+        await deployedMarketplace.addCourseAuthor(
+            courseAuthorId,
+            courseAuthorAccount.address,
+            rewardPercentage
+        );
     });
 
     it("Only the course owner can add his own new courses to the contract, it shoud fail if different", async () => {
@@ -60,7 +67,12 @@ describe("Marketplace contract test", function () {
 
         const accounts = await ethers.getSigners();
         const fakeAuthorAccount = accounts[5];
-        await deployedMarketplace.addCourseAuthor(fakeAuthorAccount.address, rewardPercentage);
+        const fakeCourseOwnerId = utils.keccak256(fakeAuthorAccount.address);
+        await deployedMarketplace.addCourseAuthor(
+            fakeCourseOwnerId,
+            fakeAuthorAccount.address,
+            rewardPercentage
+        );
 
         //array of courses_id that are being published
         var allCoursesBeingPublished = [];
@@ -76,20 +88,8 @@ describe("Marketplace contract test", function () {
             await deployedMarketplace.getCourseAuthorPublishedCourses(fakeAuthorAccount.address);
 
         for (var i = 0; i < nbFakeCoursesToAdd; i++) {
-            //from contract;
-            //index at 0 is the course id
-            //index at 1 is the availability (bytes32)
-            assert.equal(allPublishedCoursesFromContract[i][0], allCoursesBeingPublished[i]);
-            //all courses must be activated; activated=0x000....0; deactivated=0x000....1
-            assert.equal(Number.parseInt(allPublishedCoursesFromContract[i][1]), 0);
+            assert.equal(allPublishedCoursesFromContract[i], allCoursesBeingPublished[i]);
         }
-    });
-
-    it("the number of courses stored in the contract should match with courses added in previous tests", async () => {
-        const getAllCoursesArray = await deployedMarketplace.getAllCourses();
-        //1 course added in previous test (Only the course owner can add his own new courses to the contract, it shoud fail if different)
-        //10 courses added in previous test (Retrieves correctly all courses published by a course author)
-        assert.equal(getAllCoursesArray.length, 11);
     });
 
     it("The contract owner cannot publish a course, it should fail with error OnlyCourseAuthor()", async () => {
@@ -126,8 +126,7 @@ describe("Marketplace contract test", function () {
     it("Purchase a course and check if both course author and contract owner have received the money according the reward percentage previously negotiated", async () => {
         const coursePrice = "120";
         const courseAuthorDataAddr = courseAuthorAccount.address;
-        const courseAuthorRewardPercentage =
-            await deployedMarketplace.getCourseAuthorRewardPercentage(courseAuthorAccount.address);
+        const courseAuthorRewardPercentage = 90;
 
         //calculation of funds to send
         var ethExchangeRate = 0.0008642427880341;
@@ -153,16 +152,6 @@ describe("Marketplace contract test", function () {
         await deployedMarketplace.connect(buyerAccount).purchaseCourse(courseId, {
             value: valueToSend,
         });
-
-        //retrieve the course just purchased
-        const coursePurchased = await deployedMarketplace
-            .connect(buyerAccount)
-            .getUserBoughtCoursesIds(buyerAccount.address);
-        assert.equal(
-            coursePurchased[0],
-            courseId,
-            `The course id that was purchased should be : ${courseId}`
-        );
 
         //compare before/after balances
         const courseAuthorAfterBalance = await deployedMarketplace.provider.getBalance(
@@ -309,9 +298,13 @@ describe("Marketplace contract test", function () {
     it("Only a course author can change its recipient address with a new one", async () => {
         const accounts = await ethers.getSigners();
         const fakeAuthorAccount = accounts[6];
-
+        const fakeCourseAuthorId = utils.keccak256(fakeAuthorAccount.address);
         const rewardPercentage = 90;
-        await deployedMarketplace.addCourseAuthor(fakeAuthorAccount.address, rewardPercentage);
+        await deployedMarketplace.addCourseAuthor(
+            fakeCourseAuthorId,
+            fakeAuthorAccount.address,
+            rewardPercentage
+        );
 
         const newfakeAuthorAccount = accounts[7];
         await expect(
@@ -322,19 +315,19 @@ describe("Marketplace contract test", function () {
     it("Change an author recipient address", async () => {
         const accounts = await ethers.getSigners();
         const fakeAuthorAccount = accounts[8];
-
+        const fakeCourseAuthorId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
         const rewardPercentage = 27;
-        await deployedMarketplace.addCourseAuthor(fakeAuthorAccount.address, rewardPercentage);
+
+        await deployedMarketplace.addCourseAuthor(
+            fakeCourseAuthorId,
+            fakeAuthorAccount.address,
+            rewardPercentage
+        );
 
         const newfakeAuthorAccount = accounts[9];
-        deployedMarketplace
+        await deployedMarketplace
             .connect(fakeAuthorAccount)
             .changeCourseAuthorAddress(newfakeAuthorAccount.address);
-
-        const courseAuthorRewardPercentage =
-            await deployedMarketplace.getCourseAuthorRewardPercentage(newfakeAuthorAccount.address);
-
-        assert.equal(courseAuthorRewardPercentage, rewardPercentage);
     });
 
     it("Transfer marketplace ownership", async () => {
