@@ -11,7 +11,6 @@ function getRandomInt(min, max) {
 
 async function main() {
     var accounts = await ethers.getSigners();
-    const { deployer } = await getNamedAccounts();
     const chainId = network.config.chainId;
 
     console.log("----------------------");
@@ -38,25 +37,6 @@ async function main() {
         "Marketplace",
         contractAddresses[chainId][0]
     );
-
-    console.log("Add authors to marketplace contract...");
-    for (let i = 1; i < accounts.length; i++) {
-        //i = 1 because account 0 is the deployer and we don't want the deployer to addcourse, it will anyway ends up in a reverted tx
-        const address = accounts[i].address;
-        const courseAuthorId = utils.keccak256(utils.toUtf8Bytes(address));
-        const rewardPercentage = getRandomInt(80, 95);
-        console.log(
-            `Adding course author ${address}; ${rewardPercentage}% funded to his/her account for every sold courses`
-        );
-        const txAddCourseAuthor = await deployedMarketplace.addCourseAuthor(
-            courseAuthorId,
-            address,
-            rewardPercentage,
-            { from: deployer }
-        );
-        await txAddCourseAuthor.wait(network.config.blockConfirmationsForTransactions);
-        console.log(`Course author ${address} added!`);
-    }
 
     console.log("Add courses to marketplace contract with randomly chosen course author(s)...");
     for (let i = 0; i < courses.data.length; i++) {

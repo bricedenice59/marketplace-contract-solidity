@@ -36,24 +36,13 @@ describe("Marketplace contract test", function () {
         courseAuthorId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
     });
 
-    it("Add a new course author", async () => {
-        const rewardPercentage = 90;
-
-        await deployedMarketplace.addCourseAuthor(
-            courseAuthorId,
-            courseAuthorAccount.address,
-            rewardPercentage
-        );
-    });
-
-    it("Only the course owner can add his own new courses to the contract, it shoud fail if different", async () => {
+    it("Add a new course", async () => {
         await deployedMarketplace.connect(courseAuthorAccount).addCourse(courseId);
-
-        var newCourseId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
-
-        await expect(
-            deployedMarketplace.connect(buyerAccount).addCourse(newCourseId)
-        ).to.be.revertedWith("Marketplace__OnlyCourseAuthor");
+        const courses = await deployedMarketplace.getCourseAuthorPublishedCourses(
+            courseAuthorAccount.address
+        );
+        assert.equal(courses.length, 1);
+        assert.equal(courses[0], courseId);
     });
 
     it("Attempt to add a course that already exists, it shoud fail with error CourseDoesAlreadyExist()", async () => {
@@ -67,12 +56,6 @@ describe("Marketplace contract test", function () {
 
         const accounts = await ethers.getSigners();
         const fakeAuthorAccount = accounts[5];
-        const fakeCourseOwnerId = utils.keccak256(fakeAuthorAccount.address);
-        await deployedMarketplace.addCourseAuthor(
-            fakeCourseOwnerId,
-            fakeAuthorAccount.address,
-            rewardPercentage
-        );
 
         //array of courses_id that are being published
         var allCoursesBeingPublished = [];
@@ -92,7 +75,7 @@ describe("Marketplace contract test", function () {
         }
     });
 
-    it("The contract owner cannot publish a course, it should fail with error OnlyCourseAuthor()", async () => {
+    it("The contract owner(s) cannot publish a course, it should fail with error OnlyCourseAuthor()", async () => {
         await expect(
             deployedMarketplace.addCourse(utils.keccak256(utils.toUtf8Bytes(uuidv4().toString())))
         ).to.be.revertedWith("Marketplace__OnlyCourseAuthor");
@@ -244,6 +227,10 @@ describe("Marketplace contract test", function () {
         ).to.be.revertedWith("Marketplace__CourseMustBeActivated");
     });
 
+    it("Attempt to activate a course that was previously deactivated should be allowed and be successfull", async () => {
+        await deployedMarketplace.connect(courseAuthorAccount).activateCourse(courseId);
+    });
+
     it("Only the contract owner can withdraw some or all funds from the marketplace", async () => {
         const fundstoWithdraw = ethers.utils.parseEther("0.02");
 
@@ -297,37 +284,62 @@ describe("Marketplace contract test", function () {
 
     it("Only a course author can change its recipient address with a new one", async () => {
         const accounts = await ethers.getSigners();
-        const fakeAuthorAccount = accounts[6];
-        const fakeCourseAuthorId = utils.keccak256(fakeAuthorAccount.address);
-        const rewardPercentage = 90;
-        await deployedMarketplace.addCourseAuthor(
-            fakeCourseAuthorId,
-            fakeAuthorAccount.address,
-            rewardPercentage
-        );
-
         const newfakeAuthorAccount = accounts[7];
+        const anotherCourseId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
+        await deployedMarketplace.connect(newfakeAuthorAccount).addCourse(anotherCourseId);
         await expect(
-            deployedMarketplace.changeCourseAuthorAddress(newfakeAuthorAccount.address)
+            deployedMarketplace
+                .connect(buyerAccount)
+                .changeCourseAuthorAddress("0x000000000000000000000000000000000000dEaD")
         ).to.be.revertedWith("Marketplace__OnlyCourseAuthor()");
     });
 
     it("Change an author recipient address", async () => {
         const accounts = await ethers.getSigners();
-        const fakeAuthorAccount = accounts[8];
-        const fakeCourseAuthorId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
-        const rewardPercentage = 27;
+        const newfakeAuthorAccount = accounts[7];
 
-        await deployedMarketplace.addCourseAuthor(
-            fakeCourseAuthorId,
-            fakeAuthorAccount.address,
-            rewardPercentage
-        );
-
-        const newfakeAuthorAccount = accounts[9];
         await deployedMarketplace
-            .connect(fakeAuthorAccount)
-            .changeCourseAuthorAddress(newfakeAuthorAccount.address);
+            .connect(newfakeAuthorAccount)
+            .changeCourseAuthorAddress("0x000000000000000000000000000000000000dEaD");
+    });
+
+    it("Only contract owner(s) is/are allowed to freeze an author account otherwise it should fail with following error: OnlyContractOwner()", async () => {
+        await expect(
+            deployedMarketplace.connect(buyerAccount).freezeAuthor(courseAuthorAccount.address)
+        ).to.be.revertedWith("Marketplace__OnlyContractOwner");
+    });
+
+    it("Freezes a given course author and try to add a new course from this one, it should fail with following error: AuthorBlacklisted()", async () => {
+        await deployedMarketplace.freezeAuthor(courseAuthorAccount.address);
+
+        const anotherCourseId = utils.keccak256(utils.toUtf8Bytes(uuidv4().toString()));
+        await expect(
+            deployedMarketplace.connect(courseAuthorAccount).addCourse(anotherCourseId)
+        ).to.be.revertedWith("Marketplace__AuthorBlacklisted");
+    });
+
+    it("Tries to purchase a course from a blacklisted author account should fail with following error: AuthorBlacklisted()", async () => {
+        const accounts = await ethers.getSigners();
+        const anotherBuyerAccount = accounts[8];
+
+        const coursePrice = "120";
+        var ethExchangeRate = 0.0008642427880341;
+        var finalPriceEth = Number(coursePrice) * ethExchangeRate;
+        var valueToSend = ethers.utils.parseEther(finalPriceEth.toString());
+
+        await expect(
+            deployedMarketplace.connect(anotherBuyerAccount).purchaseCourse(courseId, {
+                value: valueToSend,
+            })
+        ).to.be.revertedWith("Marketplace__AuthorBlacklisted");
+    });
+
+    it("Change an author recipient address while his/her account is frozen should fail with following error: AuthorBlacklisted()", async () => {
+        await expect(
+            deployedMarketplace
+                .connect(courseAuthorAccount)
+                .changeCourseAuthorAddress("0x000000000000000000000000000000000000dEaD")
+        ).to.be.revertedWith("Marketplace__AuthorBlacklisted");
     });
 
     it("Transfer marketplace ownership", async () => {

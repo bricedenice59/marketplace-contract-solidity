@@ -5,9 +5,9 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 error Marketplace__OnlyContractOwner();
+error Marketplace__ContractRewardPercentageOutOfBound();
 error Marketplace__OnlyCourseAuthor();
 error Marketplace__CourseAuthorAddressIsSame();
-error Marketplace__CourseAuthorRewardPercentageOutOfBound();
 error Marketplace__CourseAuthorAlreadyExist();
 error Marketplace__CourseAlreadyBought();
 error Marketplace__CourseAuthorDoesNotExist();
@@ -23,6 +23,9 @@ error Marketplace__InsufficientFunds();
 error Marketplace__WithdrawalFundsFailed();
 error Marketplace__TransferFundsFailed();
 
+//blacklist common errors
+error Marketplace__AuthorBlacklisted();
+
 /** @title A marketplace contract
  *  @author Brice Grenard
  *  @notice This contract is a demo of a simple marketplace where programming courses can be promoted and sold
@@ -33,6 +36,7 @@ contract Marketplace {
     using SafeMath for uint256;
 
     address payable private contractOwner;
+    uint8 private s_contractRewardPercentage;
 
     receive() external payable {}
 
@@ -52,9 +56,8 @@ contract Marketplace {
     }
 
     struct CourseAuthor {
-        bytes32 id;
         address _address; //An author may (have to)/change account address
-        uint8 rewardPercentage; //A course author negotiates to earn a percentage of his course proposed price
+        bool isBlacklisted;
     }
 
     struct Course {
@@ -77,18 +80,31 @@ contract Marketplace {
 
     mapping(bytes32 => CourseAuthorCoursesStatus) private s_allCourseAuthorsCoursesStatus;
 
-    constructor() {
+    constructor(uint8 contract_reward_percentage) {
         setContractOwner(msg.sender);
+        s_contractRewardPercentage = contract_reward_percentage;
     }
 
     /* events */
-    event CourseAuthorAdded(bytes32 indexed courseAuthorId, address indexed author);
-    event CourseAdded(bytes32 indexed courseId, bytes32 indexed courseAuthorId);
-    event CoursePurchased(bytes32 indexed courseId, address indexed buyer);
+    event CourseAdded(
+        bytes32 indexed courseId,
+        address indexed authorAddress,
+        uint256 indexed timestamp
+    );
+    event CoursePurchased(
+        bytes32 indexed courseId,
+        address indexed buyer,
+        uint256 indexed timestamp
+    );
     event CourseActivated(bytes32 indexed courseId);
     event CourseDeactivated(bytes32 indexed courseId);
     event WithdrawFunds(address indexed toAddress, bool indexed success);
     event CourseAuthorAddressChanged(address indexed previousAddress, address indexed newAddress);
+    event BlackListedAuthor(
+        address indexed authorAddress,
+        bool indexed isFrozen,
+        uint256 indexed timestamp
+    );
 
     // Modifier
     /**
@@ -163,9 +179,59 @@ contract Marketplace {
     // Function
     /**
      * Transfer contract ownership
+     * Only the contract owner(s) can interact with it
      */
     function transferOwnership(address newContractOwner) external onlyContractOwner {
         setContractOwner(newContractOwner);
+    }
+
+    // Function
+    /**
+     * Internal function to set author account frozen/unfrozen
+     * Only the contract owner(s) can interact with it
+     */
+    function setFreezeAuthor(address _address, bool isFrozen) internal onlyContractOwner {
+        CourseAuthor storage existingAuthor = s_allCourseAuthors[_address];
+        if (existingAuthor._address == address(0)) revert Marketplace__CourseAuthorDoesNotExist();
+
+        emit BlackListedAuthor(_address, isFrozen, block.timestamp);
+        existingAuthor.isBlacklisted = isFrozen;
+    }
+
+    // Function
+    /**
+     * Freeze author account
+     * Only the contract owner(s) can interact with it
+     */
+    function freezeAuthor(address authorAddress) external onlyContractOwner {
+        setFreezeAuthor(authorAddress, true);
+    }
+
+    // Function
+    /**
+     * Unfreeze author account
+     * Only the contract owner(s) can interact with it
+     */
+    function unFreezeAuthor(address authorAddress) external onlyContractOwner {
+        setFreezeAuthor(authorAddress, false);
+    }
+
+    // Function
+    /**
+     * Change marketplace contract reward percentage
+     * Only the contract owner(s) can interact with it
+     */
+    function changeContractRewardPercentage(uint8 newRewardPercentage) external onlyContractOwner {
+        if (newRewardPercentage > 100) revert Marketplace__ContractRewardPercentageOutOfBound();
+        s_contractRewardPercentage = newRewardPercentage;
+    }
+
+    // Function
+    /**
+     * Change marketplace contract reward percentage
+     */
+    function getContractRewardPercentage() external view returns (uint8 percentage) {
+        return s_contractRewardPercentage;
     }
 
     // Function
@@ -192,6 +258,7 @@ contract Marketplace {
      */
     function changeCourseAuthorAddress(address newAddress) external onlyAuthor {
         CourseAuthor storage existingAuthor = s_allCourseAuthors[msg.sender];
+        if (existingAuthor.isBlacklisted) revert Marketplace__AuthorBlacklisted();
         if (newAddress == existingAuthor._address) revert Marketplace__CourseAuthorAddressIsSame();
 
         address previousAddress = existingAuthor._address;
@@ -208,32 +275,22 @@ contract Marketplace {
 
     // Function
     /**
-     * Add a new course author with his negotiated reward percentage
-     */
-    function addCourseAuthor(
-        bytes32 courseAuthorId,
-        address courseAuthorAddress,
-        uint8 rewardPercentage
-    ) external onlyContractOwner {
-        if (rewardPercentage > 100) revert Marketplace__CourseAuthorRewardPercentageOutOfBound();
-
-        CourseAuthor memory existingOwner = s_allCourseAuthors[courseAuthorAddress];
-        if (existingOwner._address != address(0)) revert Marketplace__CourseAuthorAlreadyExist();
-
-        CourseAuthor memory courseAuthor = CourseAuthor({
-            id: courseAuthorId,
-            _address: courseAuthorAddress,
-            rewardPercentage: rewardPercentage
-        });
-        s_allCourseAuthors[courseAuthorAddress] = courseAuthor;
-        emit CourseAuthorAdded(courseAuthorId, courseAuthorAddress);
-    }
-
-    // Function
-    /**
      * Add a new course to the contract
      */
-    function addCourse(bytes32 id) external onlyAuthor checkCourseShouldNotExist(id) {
+    function addCourse(bytes32 id) external checkCourseShouldNotExist(id) {
+        if (msg.sender == contractOwner) revert Marketplace__OnlyCourseAuthor();
+
+        //add a new course author to the contract
+        CourseAuthor memory existingOwner = s_allCourseAuthors[msg.sender];
+        if (existingOwner._address == address(0)) {
+            CourseAuthor memory courseAuthor = CourseAuthor({
+                _address: msg.sender,
+                isBlacklisted: false
+            });
+            s_allCourseAuthors[msg.sender] = courseAuthor;
+        } else if (existingOwner.isBlacklisted) revert Marketplace__AuthorBlacklisted();
+
+        //add a course
         Course memory course = Course({
             id: id,
             author: s_allCourseAuthors[msg.sender],
@@ -252,7 +309,7 @@ contract Marketplace {
         //finally, add the course to the list of published courses for the current author
         s_allCourseAuthorsPublishedCourses[msg.sender].push(course);
 
-        emit CourseAdded(id, course.author.id);
+        emit CourseAdded(id, msg.sender, block.timestamp);
     }
 
     // Function
@@ -263,6 +320,7 @@ contract Marketplace {
         CourseAuthorCoursesStatus storage authorCourseStatus = s_allCourseAuthorsCoursesStatus[
             courseId
         ];
+
         if (authorCourseStatus.availability == CourseAvailabilityEnum.Activated) {
             revert Marketplace__CourseIsAlreadyActivated();
         }
@@ -318,8 +376,8 @@ contract Marketplace {
         /**
          * @param uint Amount to transfer (in Wei)
          */
-        uint256 courseAuthorAmount = amount.mul(courseAuthor.rewardPercentage).div(100);
-        uint256 contractOwnerAmount = amount - courseAuthorAmount;
+        uint256 contractOwnerAmount = amount.mul(s_contractRewardPercentage).div(100);
+        uint256 courseAuthorAmount = amount - contractOwnerAmount;
 
         //Transfer funds to course author
         (bool successTransferCourseAuthor, ) = courseAuthor._address.call{
@@ -347,12 +405,15 @@ contract Marketplace {
 
         if (!hasCourseAlreadyBeenBought(msg.sender, courseId)) {
             Course memory course = s_allCourses[courseId];
-            course.purchaseStatus = PurchaseStatus.Purchased;
-            //get latest update from course author (he/she may have changed his fund's recipient address)
+            //get author linked to that course
             course.author = s_allCourseAuthors[course.author._address];
+            //prevent course being purchased if author is blacklisted
+            if (course.author.isBlacklisted) revert Marketplace__AuthorBlacklisted();
+
+            course.purchaseStatus = PurchaseStatus.Purchased;
             s_customerOwnedCourses[msg.sender].push(course);
 
-            emit CoursePurchased(courseId, msg.sender);
+            emit CoursePurchased(courseId, msg.sender, block.timestamp);
             splitAmount(course.author, msg.value);
 
             return;
@@ -376,19 +437,6 @@ contract Marketplace {
                 return true;
         }
         return false;
-    }
-
-    // Function
-    /**
-     * For a given course id, returns a course object
-     */
-    function getCourseFromId(bytes32 courseId)
-        private
-        view
-        checkCourseShouldExist(courseId)
-        returns (Course memory)
-    {
-        return s_allCourses[courseId];
     }
 
     // Function

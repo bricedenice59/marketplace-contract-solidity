@@ -2,11 +2,14 @@ require("dotenv").config();
 const { network } = require("hardhat");
 const { verify } = require("../utils/verify");
 
+const CONTRACT_REWARD_PERCENTAGE = 10;
+
 module.exports = async ({ getNamedAccounts, deployments }) => {
     const { deploy, log } = deployments;
     const { deployer } = await getNamedAccounts();
     const chainId = network.config.chainId;
-    const args = [];
+
+    const args = [CONTRACT_REWARD_PERCENTAGE];
 
     var deploymentResult = await deploy("Marketplace", {
         from: deployer,
