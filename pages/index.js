@@ -7,11 +7,21 @@ import Web3Context from "store/contract-context";
 import { useQuery } from "urql";
 import { wformat } from "utils/stringutils";
 
-//Fetch all courses that are activated and exclude the ones published by the current connected account
+//Fetch all courses that are activated
+//exclude the ones published by the current connected account and the ones whose author is blacklisted
 const allCoursesPublishedQuery = `
     query getAllActivatedCourseItems {
-        courseItems(where: { status: "Activated", author_: { address_not: "%connectedAccount" }}) {
+        courseItems(where: { 
+        status: "Activated",
+        author_: {address_not: "%connectedAccount"}
+        })
+        {
             id
+            author{
+                blacklistedStatus{
+                    isFrozen
+                }
+            }
         }
     }
 `;
@@ -27,8 +37,19 @@ export default function Home() {
         return <div className="text-center my-28 text-2xl text-blue-900">Loading...</div>;
     if (res.error)
         return <div className="text-center my-28 text-2xl text-blue-900">{res.error.message}</div>;
+
     if (!res.data || res.data.courseItems.length == 0)
         return <div className="text-center my-28 text-2xl text-blue-900">Marketplace empty :)</div>;
+
+    var listCourses = [];
+    res.data.courseItems.forEach((x) => {
+        var blacklisted = false;
+        blacklisted = x.author.blacklistedStatus != null && x.author.blacklistedStatus.isFrozen;
+        if (!blacklisted) {
+            listCourses.push(x);
+        }
+    });
+
     return (
         <div>
             <HeroComponent />
@@ -36,12 +57,12 @@ export default function Home() {
                 web3Context.isChainSupported ? (
                     <div className="py-10">
                         <section className="grid grid-cols-2 gap-6 mb-5">
-                            {res.data.courseItems.map((_, i) => (
+                            {listCourses.map((_, i) => (
                                 <div key={i}>
-                                    <div>{res.data.courseItems[i].id}</div>
+                                    <div>{listCourses[i].id}</div>
                                     <div className="bg-white rounded-xl shadow-md overflow-hidden md:max-w-3xl">
                                         <CourseListComponent
-                                            courseId={res.data.courseItems[i].id}
+                                            courseId={listCourses[i].id}
                                             status={null}
                                             shouldDisplayStatus={false}
                                             shouldDisplayPrice={true}

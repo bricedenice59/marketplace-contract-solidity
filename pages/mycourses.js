@@ -8,9 +8,10 @@ import { wformat } from "utils/stringutils";
 
 const allCoursesPublishedByAuthorQuery = `
     query getCourseItems{
-        courseItems(where: { author_: {address: "%authorId"}})  {
-            id
-            status
+        courseAuthor(id:"%authorId"){       
+            publications{
+                id
+            }
         }
     }
 `;
@@ -29,7 +30,7 @@ export default function Course() {
     if (res.error)
         return <div className="text-center my-28 text-2xl text-blue-900">{res.error.message}</div>;
 
-    if (!res.data || res.data.courseItems.length == 0)
+    if (!res.data || !res.data.courseAuthor || res.data.courseAuthor.publications?.length == 0)
         return (
             <div className="text-center my-28 text-2xl text-blue-900">
                 Could not find any course published yet...
@@ -42,14 +43,14 @@ export default function Course() {
                 web3Context.isChainSupported ? (
                     <div className="py-10">
                         <section className="grid grid-cols-2 gap-6 mb-5">
-                            {res.data.courseItems.map((_, i) => (
+                            {res.data.courseAuthor.publications.map((_, i) => (
                                 <div
                                     key={i}
                                     className="bg-white rounded-xl shadow-md overflow-hidden md:max-w-3xl"
                                 >
                                     <CourseListComponent
-                                        courseId={res.data.courseItems[i].id}
-                                        courseStatus={res.data.courseItems[i].status}
+                                        courseId={res.data.courseAuthor.publications[i].id}
+                                        courseStatus={res.data.courseAuthor.publications[i].status}
                                         shouldDisplayStatus={true}
                                         shouldDisplayPrice={false}
                                     ></CourseListComponent>
