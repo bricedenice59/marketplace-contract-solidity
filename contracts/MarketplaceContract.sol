@@ -4,6 +4,7 @@ pragma solidity ^0.8.0;
 // SafeMath
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
+error Marketplace__AddressIsInvalid();
 error Marketplace__OnlyContractOwner();
 error Marketplace__ContractRewardPercentageOutOfBound();
 error Marketplace__OnlyCourseAuthor();
@@ -37,6 +38,7 @@ contract Marketplace {
 
     address payable private contractOwner;
     uint8 private s_contractRewardPercentage;
+    address private s_multiSigWallet;
 
     receive() external payable {}
 
@@ -80,9 +82,11 @@ contract Marketplace {
 
     mapping(bytes32 => CourseAuthorCoursesStatus) private s_allCourseAuthorsCoursesStatus;
 
-    constructor(uint8 contract_reward_percentage) {
+    constructor(uint8 contract_reward_percentage, address multiSigWallet) {
+        if (multiSigWallet == address(0)) revert Marketplace__AddressIsInvalid();
         setContractOwner(msg.sender);
         s_contractRewardPercentage = contract_reward_percentage;
+        s_multiSigWallet = multiSigWallet;
     }
 
     /* events */
@@ -160,6 +164,14 @@ contract Marketplace {
         _;
     }
 
+    /**
+     * Prevents any single owner to interact with the here-below functions decorated with this modifier
+     */
+    modifier onlyMultiSigWallet() {
+        require(msg.sender == address(s_multiSigWallet));
+        _;
+    }
+
     // Function
     /**
      * Get current contract owner
@@ -178,19 +190,9 @@ contract Marketplace {
 
     // Function
     /**
-     * Transfer contract ownership
-     * Only the contract owner(s) can interact with it
-     */
-    function transferOwnership(address newContractOwner) external onlyContractOwner {
-        setContractOwner(newContractOwner);
-    }
-
-    // Function
-    /**
      * Internal function to set author account frozen/unfrozen
-     * Only the contract owner(s) can interact with it
      */
-    function setFreezeAuthor(address _address, bool isFrozen) internal onlyContractOwner {
+    function setFreezeAuthor(address _address, bool isFrozen) private onlyMultiSigWallet {
         CourseAuthor storage existingAuthor = s_allCourseAuthors[_address];
         if (existingAuthor._address == address(0)) revert Marketplace__CourseAuthorDoesNotExist();
 
@@ -201,18 +203,16 @@ contract Marketplace {
     // Function
     /**
      * Freeze author account
-     * Only the contract owner(s) can interact with it
      */
-    function freezeAuthor(address authorAddress) external onlyContractOwner {
+    function freezeAuthor(address authorAddress) external onlyMultiSigWallet {
         setFreezeAuthor(authorAddress, true);
     }
 
     // Function
     /**
      * Unfreeze author account
-     * Only the contract owner(s) can interact with it
      */
-    function unFreezeAuthor(address authorAddress) external onlyContractOwner {
+    function unFreezeAuthor(address authorAddress) external onlyMultiSigWallet {
         setFreezeAuthor(authorAddress, false);
     }
 
@@ -236,9 +236,9 @@ contract Marketplace {
 
     // Function
     /**
-     * Allows contract owner to withdraw some or all of the funds earned from purchases.
+     * Allows contract owners to withdraw some or all of the funds earned from purchases.
      */
-    function withdrawMarketplaceFunds(uint256 amount) external onlyContractOwner {
+    function withdrawMarketplaceFunds(address to, uint256 amount) external onlyMultiSigWallet {
         /**
          * @param uint Amount to withdraw (in Wei)
          */
@@ -246,7 +246,7 @@ contract Marketplace {
 
         if (contractBalance <= amount) revert Marketplace__InsufficientFunds();
 
-        (bool sent, ) = payable(msg.sender).call{value: amount}("");
+        (bool sent, ) = payable(to).call{value: amount}("");
         emit WithdrawFunds(address(this), sent);
 
         if (!sent) revert Marketplace__WithdrawalFundsFailed();

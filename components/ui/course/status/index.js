@@ -33,8 +33,8 @@ export default function CourseStatusComponent({ courseId, statusParam }) {
     const activateDeactivateCourse = async () => {
         var tx;
         var gasPrice;
-        if (!web3Context.contract || !web3Context.provider) return;
-
+        if (!web3Context.contracts.marketplaceContract || !web3Context.provider) return;
+        const contract = web3Context.contracts.marketplaceContract;
         setIsProcessing(true);
         try {
             gasPrice = await web3Context.provider.getGasPrice();
@@ -44,7 +44,7 @@ export default function CourseStatusComponent({ courseId, statusParam }) {
 
         if (status == "Activated") {
             try {
-                tx = await web3Context.contract.deactivateCourse(courseId, {
+                tx = await contract.deactivateCourse(courseId, {
                     gasLimit: 2100000,
                     gasPrice: gasPrice,
                 });
@@ -53,7 +53,7 @@ export default function CourseStatusComponent({ courseId, statusParam }) {
             }
         } else {
             try {
-                tx = await web3Context.contract.activateCourse(courseId, {
+                tx = await contract.activateCourse(courseId, {
                     gasLimit: 2100000,
                     gasPrice: gasPrice,
                 });

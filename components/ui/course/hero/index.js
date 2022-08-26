@@ -14,7 +14,6 @@ export default function CourseHeroComponent({ hasOwner, courseItem }) {
     const dispatch = useNotification();
     const [isProcessing, setIsProcessing] = useState(false);
     const [course, setCourse] = useState(courseItem);
-    console.log(hasOwner);
     const [hasBeenPurchased, setHasBeenPurchased] = useState(hasOwner);
 
     const handleNotificationPurchaseCompleted = (tx) => {
@@ -44,8 +43,8 @@ export default function CourseHeroComponent({ hasOwner, courseItem }) {
     const purchaseCourse = async () => {
         var tx;
         var gasPrice;
-        if (!web3Context.contract || !web3Context.provider) return;
-
+        if (!web3Context.contracts.marketplaceContract || !web3Context.provider) return;
+        const contract = web3Context.contracts.marketplaceContract;
         setIsProcessing(true);
         try {
             gasPrice = await web3Context.provider.getGasPrice();
@@ -58,7 +57,7 @@ export default function CourseHeroComponent({ hasOwner, courseItem }) {
 
         const valueToSend = ethers.utils.parseEther(itemPrice).toString();
         try {
-            tx = await web3Context.contract.purchaseCourse(course.id, {
+            tx = await contract.purchaseCourse(course.id, {
                 gasLimit: 2100000,
                 gasPrice: gasPrice,
                 value: valueToSend,

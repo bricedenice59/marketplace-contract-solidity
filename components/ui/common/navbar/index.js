@@ -3,14 +3,23 @@ import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState, useContext } from "react";
 import EthPriceContext from "store/price-change-context";
+import Web3Context from "store/contract-context";
 
 export default function Navbar() {
     const [priceETH, setPriceETH] = useState();
+    const [isAdmin, setIsAdmin] = useState();
     const priceContext = useContext(EthPriceContext.EthPriceContext);
+    const web3Context = useContext(Web3Context.Web3Context);
 
     useEffect(() => {
         setPriceETH(priceContext?.ethPrice);
     }, [priceContext?.ethPrice]);
+
+    useEffect(() => {
+        if (web3Context) {
+            setIsAdmin(web3Context.isConnectedAccountAdmin);
+        }
+    }, [web3Context?.isConnectedAccountAdmin]);
 
     return (
         <section>
@@ -52,6 +61,18 @@ export default function Navbar() {
                             />
                             <div className="text-2xl font-bold"> {priceETH}$</div>
                         </div>
+                        {isAdmin ? (
+                            <div className="px-10">
+                                <Link
+                                    className="font-medium mr-8 text-gray-500 hover:text-gray-900"
+                                    href="/admin"
+                                >
+                                    Administration
+                                </Link>
+                            </div>
+                        ) : (
+                            <div></div>
+                        )}
                     </div>
                 </nav>
             </div>

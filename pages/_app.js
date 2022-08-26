@@ -3,7 +3,7 @@ import { MoralisProvider } from "react-moralis";
 import ContractContextProvider from "store/contract-context";
 import EthPriceContextProvider from "store/price-change-context";
 import { Provider } from "urql";
-import { client } from "store/graphql-context";
+import { marketplaceTheGraphClient } from "store/graphql-context";
 import "@styles/globals.css";
 
 function MyApp({ Component, pageProps }) {
@@ -11,7 +11,7 @@ function MyApp({ Component, pageProps }) {
     return (
         <>
             <MoralisProvider initializeOnMount={false}>
-                <Provider value={client}>
+                <Provider value={marketplaceTheGraphClient}>
                     <NotificationProvider>
                         <ContractContextProvider.ContractContextProvider>
                             <EthPriceContextProvider.EthPriceContextProvider>

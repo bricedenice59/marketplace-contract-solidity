@@ -1,5 +1,5 @@
 const { getNamedAccounts, network, ethers } = require("hardhat");
-const { contractAddresses } = require("../contracts_constants/index");
+const { marketPlaceContractAddresses } = require("../contracts_constants/index");
 const { getAllParsedCoursesForContractUse } = require("../content/courses/fetcher");
 const { utils } = require("ethers");
 
@@ -35,7 +35,7 @@ async function main() {
     console.log("Populate marketplace contract");
     const deployedMarketplace = await ethers.getContractAt(
         "Marketplace",
-        contractAddresses[chainId][0]
+        marketPlaceContractAddresses[chainId][0]
     );
 
     console.log("Add courses to marketplace contract with randomly chosen course author(s)...");

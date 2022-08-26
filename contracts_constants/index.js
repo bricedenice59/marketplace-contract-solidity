@@ -1,7 +1,11 @@
-const contractAddresses = require("./addresses.json");
-const contractAbi = require("./abi.json");
+const marketPlaceContractAddresses = require("./addresses.json");
+const marketPlaceContractAbi = require("./abi.json");
+const multiSigWalletContractAbi = require("./multiSig-wallet-abi.json");
 
+const multiSigWalletAddress = process.env.NEXT_PUBLIC_MULTISIG_CONTRACT_ADDRESS;
 module.exports = {
-    contractAddresses,
-    contractAbi,
+    marketPlaceContractAddresses,
+    multiSigWalletAddress,
+    marketPlaceContractAbi,
+    multiSigWalletContractAbi,
 };
