@@ -1,5 +1,4 @@
 const { v4: uuidv4 } = require("uuid");
-const testUtils = require("../utils/testutils/common");
 const { assert, expect } = require("chai");
 const { deployments, ethers, getNamedAccounts } = require("hardhat");
 const { utils } = require("ethers");

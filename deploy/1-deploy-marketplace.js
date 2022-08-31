@@ -1,11 +1,11 @@
 require("dotenv").config();
 const fs = require("fs");
 const { network } = require("hardhat");
-const { verify } = require("../../marketplace/utils/verify");
+const { verify } = require("../../marketplace-utils/utils/verify");
 const {
     addresses,
     ROOT_CONTRACTS_JSON,
-} = require("../../marketplace/contracts_constants/index.js");
+} = require("../../marketplace-utils/contracts_constants/index.js");
 const CONTRACT_REWARD_PERCENTAGE = 10;
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
