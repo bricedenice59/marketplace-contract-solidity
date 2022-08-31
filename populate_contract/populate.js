@@ -1,7 +1,6 @@
 const { getNamedAccounts, network, ethers } = require("hardhat");
 const { marketPlaceContractAddresses } = require("../contracts_constants/index");
 const { getAllParsedCoursesForContractUse } = require("../content/courses/fetcher");
-const { utils } = require("ethers");
 
 function getRandomInt(min, max) {
     min = Math.ceil(min);
