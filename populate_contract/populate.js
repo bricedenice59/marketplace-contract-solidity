@@ -1,6 +1,12 @@
-const { getNamedAccounts, network, ethers } = require("hardhat");
-const { marketPlaceContractAddresses } = require("../contracts_constants/index");
-const { getAllParsedCoursesForContractUse } = require("../content/courses/fetcher");
+const fs = require("fs");
+const { network, ethers } = require("hardhat");
+const {
+    addresses,
+    ROOT_CONTRACTS_JSON,
+} = require("../../marketplace-utils/contracts_constants/index");
+const {
+    getAllParsedCoursesForContractUse,
+} = require("../../marketplace-utils/content/courses/fetcher");
 
 function getRandomInt(min, max) {
     min = Math.ceil(min);
@@ -27,24 +33,43 @@ async function main() {
         const address = accounts[i].address;
         console.log(`Account ${i}: ${address}`);
     }
-    console.log("Checks done...");
+
     console.log("----------------------");
+
+    console.log("Checking if deployed address exists");
+
+    const contractAddressesJsonFile = addresses();
+    const fsRead = fs.readFileSync(contractAddressesJsonFile, "utf-8");
+    const contractAddresses = JSON.parse(fsRead);
+    const marketPlaceContractAddresse = contractAddresses[ROOT_CONTRACTS_JSON].find(
+        (x) => x.contractname === "Marketplace" && x.chainId === chainId.toString()
+    );
+    if (!marketPlaceContractAddresse)
+        throw new Error(
+            `Marketplace contract address for chain=${chainId} could not be found`
+        );
+
+    console.log("Checks done...");
 
     console.log("----------------------");
     console.log("Populate marketplace contract");
     const deployedMarketplace = await ethers.getContractAt(
         "Marketplace",
-        marketPlaceContractAddresses[chainId][0]
+        marketPlaceContractAddresse.contractAddress
     );
 
-    console.log("Add courses to marketplace contract with randomly chosen course author(s)...");
+    console.log(
+        "Add courses to marketplace contract with randomly chosen course author(s)..."
+    );
     for (let i = 0; i < courses.data.length; i++) {
         const course = courses.data[i];
         const randomAccount = accounts[getRandomInt(1, accounts.length - 1)];
         console.log(
             `Adding course with id= ${course.id}; course author is ${randomAccount.address}`
         );
-        const txAddCourse = await deployedMarketplace.connect(randomAccount).addCourse(course.id);
+        const txAddCourse = await deployedMarketplace
+            .connect(randomAccount)
+            .addCourse(course.id);
         await txAddCourse.wait(network.config.blockConfirmationsForTransactions);
         console.log(`Course ${course.id} added!`);
     }
