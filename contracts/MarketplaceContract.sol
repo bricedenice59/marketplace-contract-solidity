@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.0;
+pragma solidity ^0.8.14;
 
 // SafeMath
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
 error Marketplace__AddressIsInvalid();
 error Marketplace__OnlyContractOwner();
+error Marketplace__OnlyMultiSigWalletsOwners();
 error Marketplace__ContractRewardPercentageOutOfBound();
 error Marketplace__OnlyCourseAuthor();
 error Marketplace__CourseAuthorAddressIsSame();
@@ -103,7 +104,10 @@ contract Marketplace {
     event CourseActivated(bytes32 indexed courseId);
     event CourseDeactivated(bytes32 indexed courseId);
     event WithdrawFunds(address indexed toAddress, bool indexed success);
-    event CourseAuthorAddressChanged(address indexed previousAddress, address indexed newAddress);
+    event CourseAuthorAddressChanged(
+        address indexed previousAddress,
+        address indexed newAddress
+    );
     event BlackListedAuthor(
         address indexed authorAddress,
         bool indexed isFrozen,
@@ -117,10 +121,13 @@ contract Marketplace {
     modifier canPurchaseCourse(bytes32 courseId) {
         //prevents an author to buy any of his/her own courses
         Course memory course = s_allCourses[courseId];
-        if (course.author._address == msg.sender) revert Marketplace__CannotPurchaseOwnCourse();
+        if (course.author._address == msg.sender)
+            revert Marketplace__CannotPurchaseOwnCourse();
 
         //check the status of the course set by the course author
-        CourseAuthorCoursesStatus memory courseStatus = s_allCourseAuthorsCoursesStatus[courseId];
+        CourseAuthorCoursesStatus memory courseStatus = s_allCourseAuthorsCoursesStatus[
+            courseId
+        ];
         if (courseStatus.availability == CourseAvailabilityEnum.Deactivated)
             revert Marketplace__CourseMustBeActivated();
 
@@ -168,7 +175,8 @@ contract Marketplace {
      * Prevents any single owner to interact with the here-below functions decorated with this modifier
      */
     modifier onlyMultiSigWallet() {
-        require(msg.sender == address(s_multiSigWallet));
+        if (msg.sender != address(s_multiSigWallet))
+            revert Marketplace__OnlyMultiSigWalletsOwners();
         _;
     }
 
@@ -194,7 +202,8 @@ contract Marketplace {
      */
     function setFreezeAuthor(address _address, bool isFrozen) private onlyMultiSigWallet {
         CourseAuthor storage existingAuthor = s_allCourseAuthors[_address];
-        if (existingAuthor._address == address(0)) revert Marketplace__CourseAuthorDoesNotExist();
+        if (existingAuthor._address == address(0))
+            revert Marketplace__CourseAuthorDoesNotExist();
 
         emit BlackListedAuthor(_address, isFrozen, block.timestamp);
         existingAuthor.isBlacklisted = isFrozen;
@@ -221,8 +230,12 @@ contract Marketplace {
      * Change marketplace contract reward percentage
      * Only the contract owner(s) can interact with it
      */
-    function changeContractRewardPercentage(uint8 newRewardPercentage) external onlyContractOwner {
-        if (newRewardPercentage > 100) revert Marketplace__ContractRewardPercentageOutOfBound();
+    function changeContractRewardPercentage(uint8 newRewardPercentage)
+        external
+        onlyContractOwner
+    {
+        if (newRewardPercentage > 100)
+            revert Marketplace__ContractRewardPercentageOutOfBound();
         s_contractRewardPercentage = newRewardPercentage;
     }
 
@@ -238,7 +251,10 @@ contract Marketplace {
     /**
      * Allows contract owners to withdraw some or all of the funds earned from purchases.
      */
-    function withdrawMarketplaceFunds(address to, uint256 amount) external onlyMultiSigWallet {
+    function withdrawMarketplaceFunds(address to, uint256 amount)
+        external
+        onlyMultiSigWallet
+    {
         /**
          * @param uint Amount to withdraw (in Wei)
          */
@@ -259,7 +275,8 @@ contract Marketplace {
     function changeCourseAuthorAddress(address newAddress) external onlyAuthor {
         CourseAuthor storage existingAuthor = s_allCourseAuthors[msg.sender];
         if (existingAuthor.isBlacklisted) revert Marketplace__AuthorBlacklisted();
-        if (newAddress == existingAuthor._address) revert Marketplace__CourseAuthorAddressIsSame();
+        if (newAddress == existingAuthor._address)
+            revert Marketplace__CourseAuthorAddressIsSame();
 
         address previousAddress = existingAuthor._address;
         existingAuthor._address = newAddress;
@@ -316,10 +333,13 @@ contract Marketplace {
     /**
      * Activate a course, this may be necessary if it was previously deactivated
      */
-    function activateCourse(bytes32 courseId) external onlyAuthor checkCourseShouldExist(courseId) {
-        CourseAuthorCoursesStatus storage authorCourseStatus = s_allCourseAuthorsCoursesStatus[
-            courseId
-        ];
+    function activateCourse(bytes32 courseId)
+        external
+        onlyAuthor
+        checkCourseShouldExist(courseId)
+    {
+        CourseAuthorCoursesStatus
+            storage authorCourseStatus = s_allCourseAuthorsCoursesStatus[courseId];
 
         if (authorCourseStatus.availability == CourseAvailabilityEnum.Activated) {
             revert Marketplace__CourseIsAlreadyActivated();
@@ -338,9 +358,8 @@ contract Marketplace {
         onlyAuthor
         checkCourseShouldExist(courseId)
     {
-        CourseAuthorCoursesStatus storage authorCourseStatus = s_allCourseAuthorsCoursesStatus[
-            courseId
-        ];
+        CourseAuthorCoursesStatus
+            storage authorCourseStatus = s_allCourseAuthorsCoursesStatus[courseId];
 
         if (authorCourseStatus.availability == CourseAvailabilityEnum.Deactivated) {
             revert Marketplace__CourseIsAlreadyDeactivated();
@@ -359,9 +378,8 @@ contract Marketplace {
         checkCourseShouldExist(courseId)
         returns (CourseAvailabilityEnum status)
     {
-        CourseAuthorCoursesStatus memory authorCourseStatus = s_allCourseAuthorsCoursesStatus[
-            courseId
-        ];
+        CourseAuthorCoursesStatus
+            memory authorCourseStatus = s_allCourseAuthorsCoursesStatus[courseId];
 
         return authorCourseStatus.availability;
     }
@@ -386,7 +404,9 @@ contract Marketplace {
         if (!successTransferCourseAuthor) revert Marketplace__TransferFundsFailed();
 
         //Tranfer the rest to contract
-        (bool successTransferContract, ) = address(this).call{value: contractOwnerAmount}("");
+        (bool successTransferContract, ) = address(this).call{value: contractOwnerAmount}(
+            ""
+        );
         if (!successTransferContract) revert Marketplace__TransferFundsFailed();
     }
 
@@ -433,8 +453,10 @@ contract Marketplace {
     {
         Course[] memory owned = s_customerOwnedCourses[_address];
         for (uint256 i = 0; i < owned.length; i++) {
-            if (owned[i].id == courseHashId && owned[i].purchaseStatus == PurchaseStatus.Purchased)
-                return true;
+            if (
+                owned[i].id == courseHashId &&
+                owned[i].purchaseStatus == PurchaseStatus.Purchased
+            ) return true;
         }
         return false;
     }
@@ -451,7 +473,9 @@ contract Marketplace {
         if (s_allCourseAuthors[authorAddress]._address == address(0))
             revert Marketplace__CourseAuthorDoesNotExist();
 
-        Course[] memory publishedCourses = s_allCourseAuthorsPublishedCourses[authorAddress];
+        Course[] memory publishedCourses = s_allCourseAuthorsPublishedCourses[
+            authorAddress
+        ];
         bytes32[] memory ids = new bytes32[](publishedCourses.length);
         uint256 j;
         for (uint256 i = 0; i < publishedCourses.length; i++) {
