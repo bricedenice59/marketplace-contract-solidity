@@ -1,11 +1,11 @@
 require("dotenv").config();
 const fs = require("fs");
 const { network } = require("hardhat");
-const { verify } = require("../../marketplace-utils/utils/verify");
+const { verify } = require("marketplace-shared/lib/contracts/verify/verify");
 const {
     addresses,
     ROOT_CONTRACTS_JSON,
-} = require("../../marketplace-utils/contracts_constants/index.js");
+} = require("marketplace-shared/lib/contracts/constants/index.js");
 const CONTRACT_REWARD_PERCENTAGE = 10;
 
 module.exports = async ({ getNamedAccounts, deployments }) => {
@@ -20,7 +20,9 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
         (x) => x.contractname === "MultiSig" && x.chainId === chainId.toString()
     );
     if (!multiSigContract)
-        throw new Error("Contract address for the multisig wallet could not be found");
+        throw new Error(
+            `Contract MultiSig deployement address is missing for chain id = ${chainId.toString()}`
+        );
 
     const args = [CONTRACT_REWARD_PERCENTAGE, multiSigContract.contractAddress];
 
