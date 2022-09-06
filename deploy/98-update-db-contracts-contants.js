@@ -1,27 +1,28 @@
 const {
+    DB_SCHEMA_NAME,
+    TABLE_DEPLOYED_ADDRESSES_ABIS_NAME,
     createSchema,
     createTable,
     dropSchema,
     insertIntoTable,
     describeSchema,
+    setDbConfig,
 } = require("marketplace-shared/lib/database/harperDbUtils");
 const { addresses, abis } = require("marketplace-shared/lib/contracts/constants");
 const fs = require("fs");
 
-const SCHEMA_NAME = "dbMarketplace";
-const TABLE_DEPLOYED_ADDRESSES_ABIS_NAME = "contracts";
-
 module.exports = async function () {
-    const schemaExist = await describeSchema(SCHEMA_NAME);
-    if (schemaExist) await dropSchema(SCHEMA_NAME);
+    setDbConfig(process.env.HARPERDB_CLOUD_ENPOINT, process.env.HARPERDB_AUTH_KEY);
+    const schemaExist = await describeSchema(DB_SCHEMA_NAME);
+    if (schemaExist) await dropSchema(DB_SCHEMA_NAME);
 
-    const schemaCreationSuccess = await createSchema(SCHEMA_NAME);
+    const schemaCreationSuccess = await createSchema(DB_SCHEMA_NAME);
     schemaCreationSuccess
-        ? console.log(`schema ${SCHEMA_NAME} created successfully`)
+        ? console.log(`schema ${DB_SCHEMA_NAME} created successfully`)
         : console.log("An error occured when trying to create the schema");
 
     const tableCreationSuccess = await createTable(
-        SCHEMA_NAME,
+        DB_SCHEMA_NAME,
         TABLE_DEPLOYED_ADDRESSES_ABIS_NAME,
         "id"
     );
@@ -58,7 +59,7 @@ module.exports = async function () {
             );
 
         const recordInsertSuccess = await insertIntoTable(
-            SCHEMA_NAME,
+            DB_SCHEMA_NAME,
             TABLE_DEPLOYED_ADDRESSES_ABIS_NAME,
             (jsonContent = [
                 {

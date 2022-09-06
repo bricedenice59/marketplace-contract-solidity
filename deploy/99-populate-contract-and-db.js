@@ -3,10 +3,17 @@ const { network, ethers } = require("hardhat");
 const {
     addresses,
     ROOT_CONTRACTS_JSON,
-} = require("../../marketplace-utils/contracts_constants/index");
+} = require("marketplace-shared/lib/contracts/constants");
 const {
-    getAllParsedCoursesForContractUse,
-} = require("../../marketplace-utils/content/courses/fetcher");
+    DB_SCHEMA_NAME,
+    TABLE_COURSES,
+    createTable,
+    describeTable,
+    dropTable,
+    insertIntoTable,
+    setDbConfig,
+} = require("marketplace-shared/lib/database/harperDbUtils");
+const { getAllCourses } = require("marketplace-shared/lib/frontend/courses/fetcher");
 
 function getRandomInt(min, max) {
     min = Math.ceil(min);
@@ -14,17 +21,17 @@ function getRandomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
-async function main() {
+module.exports = async function () {
     var accounts = await ethers.getSigners();
     const chainId = network.config.chainId;
 
     console.log("----------------------");
     console.log("Checking if a list of courses exist...");
-    const courses = getAllParsedCoursesForContractUse();
+    const courses = getAllCourses();
 
     if (courses.data.length === 0) {
         throw new Error(
-            "No course were found, are you sure you have a list of courses available in content/courses/index.json?"
+            "No course were found, are you sure you have a list of courses available in frontend/courses/index.json?"
         );
     }
 
@@ -49,10 +56,24 @@ async function main() {
             `Marketplace contract address for chain=${chainId} could not be found`
         );
 
+    console.log("Setting up db table...");
+
+    setDbConfig(process.env.HARPERDB_CLOUD_ENPOINT, process.env.HARPERDB_AUTH_KEY);
+    const tableExist = await describeTable(DB_SCHEMA_NAME, TABLE_COURSES);
+    if (tableExist) await dropTable(DB_SCHEMA_NAME, TABLE_COURSES);
+
+    const tableCreationSuccess = await createTable(DB_SCHEMA_NAME, TABLE_COURSES, "id");
+    tableCreationSuccess
+        ? console.log(`table ${TABLE_COURSES} created successfully`)
+        : console.log(
+              `An error occured when trying to create the table ${TABLE_COURSES}`
+          );
+
+    console.log("----------------------");
     console.log("Checks done...");
 
     console.log("----------------------");
-    console.log("Populate marketplace contract");
+    console.log("Populate marketplace contract with mock data");
     const deployedMarketplace = await ethers.getContractAt(
         "Marketplace",
         marketPlaceContractAddresse.contractAddress
@@ -72,15 +93,16 @@ async function main() {
             .addCourse(course.id);
         await txAddCourse.wait(network.config.blockConfirmationsForTransactions);
         console.log(`Course ${course.id} added!`);
+
+        console.log("Adding course to database...");
+        const recordInsertSuccess = await insertIntoTable(DB_SCHEMA_NAME, TABLE_COURSES, [
+            course,
+        ]);
+        recordInsertSuccess
+            ? console.log(`insert course ${course.id} created successfully`)
+            : console.log("An error occured when trying to insert a row");
     }
 
-    console.log("Marketplace populated!");
+    console.log("Marketplace contract and database are now populated!");
     console.log("----------------------");
-}
-
-main()
-    .then(() => process.exit(0))
-    .catch((error) => {
-        console.error(error);
-        process.exit(1);
-    });
+};
